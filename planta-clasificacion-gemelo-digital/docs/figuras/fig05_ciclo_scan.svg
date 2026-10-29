@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 760" width="1240" height="760" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" role="img" aria-label="Ciclo de scan del PLC y diagrama temporal de una orden de Marcha">
+<title>Ciclo de scan del PLC y diagrama temporal de una orden de Marcha</title>
+<defs>
+  <marker id="punta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#1f2329"/></marker>
+  <marker id="punta-gris" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#5f6873"/></marker>
+  <marker id="punta-salida" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2c6fb7"/></marker>
+  <marker id="punta-entrada" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2f7a4a"/></marker>
+  <marker id="cota" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,1 L10,5 L0,9" fill="none" stroke="#5f6873" stroke-width="1.4"/></marker>
+</defs>
+<rect width="1240" height="760" fill="#ffffff"/>
+<rect x="70.0" y="40.0" width="245.0" height="96.0" rx="8" fill="#f5f7fa" stroke="#1f2329" stroke-width="1.6"/>
+<circle cx="92.0" cy="63.0" r="13" fill="#1f2329" stroke="#1f2329" stroke-width="1"/>
+<text x="92.0" y="67.5" font-size="12" text-anchor="middle" fill="#ffffff" font-weight="700">1</text>
+<text x="114.0" y="68.0" font-size="13" text-anchor="start" fill="#1f2329" font-weight="700">Lectura de entradas</text>
+<text x="86.0" y="99.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal">copia la imagen %IX</text>
+<text x="86.0" y="117.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">coils → %IX0.0–0.6</text>
+<line x1="315.0" y1="88.0" x2="363.0" y2="88.0" stroke="#1f2329" stroke-width="1.6" marker-end="url(#punta)"/>
+<rect x="365.0" y="40.0" width="245.0" height="96.0" rx="8" fill="#f5f7fa" stroke="#1f2329" stroke-width="1.6"/>
+<circle cx="387.0" cy="63.0" r="13" fill="#1f2329" stroke="#1f2329" stroke-width="1"/>
+<text x="387.0" y="67.5" font-size="12" text-anchor="middle" fill="#ffffff" font-weight="700">2</text>
+<text x="409.0" y="68.0" font-size="13" text-anchor="start" fill="#1f2329" font-weight="700">Ejecución del programa</text>
+<text x="381.0" y="99.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal">PLC_PRG → FB_ClasificadorFSM</text>
+<text x="381.0" y="117.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">flancos, TON, δ y λ</text>
+<line x1="610.0" y1="88.0" x2="658.0" y2="88.0" stroke="#1f2329" stroke-width="1.6" marker-end="url(#punta)"/>
+<rect x="660.0" y="40.0" width="245.0" height="96.0" rx="8" fill="#f5f7fa" stroke="#1f2329" stroke-width="1.6"/>
+<circle cx="682.0" cy="63.0" r="13" fill="#1f2329" stroke="#1f2329" stroke-width="1"/>
+<text x="682.0" y="67.5" font-size="12" text-anchor="middle" fill="#ffffff" font-weight="700">3</text>
+<text x="704.0" y="68.0" font-size="13" text-anchor="start" fill="#1f2329" font-weight="700">Escritura de salidas</text>
+<text x="676.0" y="99.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal">copia la imagen %QX</text>
+<text x="676.0" y="117.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">%QX0.0–0.6 → discrete inputs</text>
+<line x1="905.0" y1="88.0" x2="953.0" y2="88.0" stroke="#1f2329" stroke-width="1.6" marker-end="url(#punta)"/>
+<rect x="955.0" y="40.0" width="245.0" height="96.0" rx="8" fill="#f5f7fa" stroke="#1f2329" stroke-width="1.6"/>
+<circle cx="977.0" cy="63.0" r="13" fill="#1f2329" stroke="#1f2329" stroke-width="1"/>
+<text x="977.0" y="67.5" font-size="12" text-anchor="middle" fill="#ffffff" font-weight="700">4</text>
+<text x="999.0" y="68.0" font-size="13" text-anchor="start" fill="#1f2329" font-weight="700">Servicios del sistema</text>
+<text x="971.0" y="99.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal">comunicación Modbus,</text>
+<text x="971.0" y="117.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">diagnóstico y vigilancia</text>
+<path d="M1077.5,136 L1077.5,160 L192.5,160 L192.5,138" fill="none" stroke="#1f2329" stroke-width="1.6" marker-end="url(#punta)"/>
+<text x="640.0" y="178.0" font-size="12" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">El ciclo se repite cada 10 ms (MainTask). El programa razona siempre sobre la imagen de entradas congelada al inicio.</text>
+<text x="284.0" y="254.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">Ciclos de scan (10 ms)</text>
+<text x="284.0" y="304.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">Lecturas del middleware (FC01 + FC02)</text>
+<text x="284.0" y="359.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">Coil 0 · Marcha escrito por el middleware</text>
+<text x="284.0" y="414.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">%IX0.0 en la imagen del PLC</text>
+<text x="284.0" y="469.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">R_TRIG.Q · flanco de Marcha</text>
+<text x="284.0" y="524.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">eEstado del PLC</text>
+<text x="284.0" y="579.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">%QX0.0 · motor de la cinta de entrada</text>
+<text x="284.0" y="634.0" font-size="12" text-anchor="end" fill="#1f2329" font-weight="normal">systemStatus publicado a la HMI</text>
+<line x1="300.0" y1="236.0" x2="300.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="300.0" y1="243.0" x2="300.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="344.0" y1="236.0" x2="344.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="344.0" y1="243.0" x2="344.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="388.0" y1="236.0" x2="388.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="388.0" y1="243.0" x2="388.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="432.0" y1="236.0" x2="432.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="432.0" y1="243.0" x2="432.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="476.0" y1="236.0" x2="476.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="476.0" y1="243.0" x2="476.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="520.0" y1="236.0" x2="520.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="520.0" y1="243.0" x2="520.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="564.0" y1="236.0" x2="564.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="564.0" y1="243.0" x2="564.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="608.0" y1="236.0" x2="608.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="608.0" y1="243.0" x2="608.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="652.0" y1="236.0" x2="652.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="652.0" y1="243.0" x2="652.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="696.0" y1="236.0" x2="696.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="696.0" y1="243.0" x2="696.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="740.0" y1="236.0" x2="740.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="740.0" y1="243.0" x2="740.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="784.0" y1="236.0" x2="784.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="784.0" y1="243.0" x2="784.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="828.0" y1="236.0" x2="828.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="828.0" y1="243.0" x2="828.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="872.0" y1="236.0" x2="872.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="872.0" y1="243.0" x2="872.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="916.0" y1="236.0" x2="916.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="916.0" y1="243.0" x2="916.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="960.0" y1="236.0" x2="960.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="960.0" y1="243.0" x2="960.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="1004.0" y1="236.0" x2="1004.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="1004.0" y1="243.0" x2="1004.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="1048.0" y1="236.0" x2="1048.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="1048.0" y1="243.0" x2="1048.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="1092.0" y1="236.0" x2="1092.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="1092.0" y1="243.0" x2="1092.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="1136.0" y1="236.0" x2="1136.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="1136.0" y1="243.0" x2="1136.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<line x1="1180.0" y1="236.0" x2="1180.0" y2="650.0" stroke="#e3e7ec" stroke-width="1"/>
+<line x1="1180.0" y1="243.0" x2="1180.0" y2="257.0" stroke="#1f2329" stroke-width="1.6"/>
+<polygon points="300.0,292.0 307.0,300.0 300.0,308.0 293.0,300.0" fill="#2c6fb7" stroke="#2c6fb7" stroke-width="1"/>
+<text x="300.0" y="678.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">0 ms</text>
+<polygon points="520.0,292.0 527.0,300.0 520.0,308.0 513.0,300.0" fill="#2c6fb7" stroke="#2c6fb7" stroke-width="1"/>
+<text x="520.0" y="678.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">50 ms</text>
+<polygon points="740.0,292.0 747.0,300.0 740.0,308.0 733.0,300.0" fill="#2c6fb7" stroke="#2c6fb7" stroke-width="1"/>
+<text x="740.0" y="678.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">100 ms</text>
+<polygon points="960.0,292.0 967.0,300.0 960.0,308.0 953.0,300.0" fill="#2c6fb7" stroke="#2c6fb7" stroke-width="1"/>
+<text x="960.0" y="678.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">150 ms</text>
+<polygon points="1180.0,292.0 1187.0,300.0 1180.0,308.0 1173.0,300.0" fill="#2c6fb7" stroke="#2c6fb7" stroke-width="1"/>
+<text x="1180.0" y="678.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">200 ms</text>
+<polyline points="300.0,366.0 401.2,366.0 401.2,344.0 1061.2,344.0 1061.2,366.0 1180.0,366.0" fill="none" stroke="#2c6fb7" stroke-width="2.2"/>
+<polyline points="300.0,421.0 432.0,421.0 432.0,399.0 1092.0,399.0 1092.0,421.0 1180.0,421.0" fill="none" stroke="#2f7a4a" stroke-width="2.2"/>
+<polyline points="300.0,476.0 432.0,476.0 432.0,454.0 476.0,454.0 476.0,476.0 1180.0,476.0" fill="none" stroke="#2f7a4a" stroke-width="2.2"/>
+<polygon points="305.0,509.0 427.0,509.0 432.0,520.0 427.0,531.0 305.0,531.0 300.0,520.0" fill="#ffffff" stroke="#1f2329" stroke-width="1.4"/>
+<text x="366.0" y="524.0" font-size="11" text-anchor="middle" fill="#1f2329" font-weight="normal">REPOSO</text>
+<polygon points="437.0,509.0 1175.0,509.0 1180.0,520.0 1175.0,531.0 437.0,531.0 432.0,520.0" fill="#ffffff" stroke="#1f2329" stroke-width="1.4"/>
+<text x="806.0" y="524.0" font-size="11" text-anchor="middle" fill="#1f2329" font-weight="normal">EN_MARCHA_ESPERA</text>
+<polyline points="300.0,586.0 432.0,586.0 432.0,564.0 1180.0,564.0" fill="none" stroke="#2c6fb7" stroke-width="2.2"/>
+<polygon points="305.0,619.0 515.0,619.0 520.0,630.0 515.0,641.0 305.0,641.0 300.0,630.0" fill="#ffffff" stroke="#1f2329" stroke-width="1.4"/>
+<text x="410.0" y="634.0" font-size="11" text-anchor="middle" fill="#1f2329" font-weight="normal">REPOSO</text>
+<polygon points="525.0,619.0 1175.0,619.0 1180.0,630.0 1175.0,641.0 525.0,641.0 520.0,630.0" fill="#ffffff" stroke="#1f2329" stroke-width="1.4"/>
+<text x="850.0" y="634.0" font-size="11" text-anchor="middle" fill="#1f2329" font-weight="normal">ESPERANDO_PAQUETE</text>
+<line x1="432.0" y1="236.0" x2="432.0" y2="650.0" stroke="#c0392b" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text x="438.0" y="230.0" font-size="11" text-anchor="start" fill="#c0392b" font-weight="normal" font-style="italic">ciclo de los 30 ms: ve Marcha = 1 → T2</text>
+<text x="397.2" y="338.0" font-size="10" text-anchor="end" fill="#2c6fb7" font-weight="normal" font-style="italic">orden a los 23 ms</text>
+<line x1="520.0" y1="640.0" x2="520.0" y2="650.0" stroke="#2c6fb7" stroke-width="1.6"/>
+<text x="1067.2" y="350.0" font-size="10" text-anchor="start" fill="#2c6fb7" font-weight="normal" font-style="italic">150 ms</text>
+<text x="640.0" y="712.0" font-size="12" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">El pulso de 150 ms supera T_scan + T_p = 60 ms: el PLC lo detecta en el ciclo siguiente (30 ms) y la lectura de retorno lo registra a los 50, 100 y 150 ms.</text>
+<text x="640.0" y="732.0" font-size="12" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">La HMI ve el cambio en la lectura de los 50 ms: 27 ms después de la orden, dentro del presupuesto de latencia de ≈ 79 ms (docs/01 §6.1).</text>
+</svg>

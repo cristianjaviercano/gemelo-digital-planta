@@ -1,0 +1,36 @@
+{
+  "$comment": "Parámetros de referencia del dispositivo ModbusTCP Slave Device (CODESYS V3.5). Fuente única de verdad del contrato de memoria v1.1.0 (v1.0.0 + estibas, docs/08 §3).",
+  "contractVersion": "1.1.0",
+  "device": "ModbusTCP_Slave_Device",
+  "network": { "bindAddress": "127.0.0.1", "port": 502, "unitId": 1, "timeoutMs": 2000 },
+  "busCycleTask": { "name": "MainTask", "type": "cyclic", "intervalMs": 10 },
+  "coils": {
+    "direction": "master_to_plc",
+    "baseAddress": 0,
+    "count": 7,
+    "map": [
+      { "coil": 0, "iec": "%IX0.0", "plcVar": "Marcha",           "json": "inputs.marcha",           "mode": "pulse" },
+      { "coil": 1, "iec": "%IX0.1", "plcVar": "Parada",           "json": "inputs.parada",           "mode": "pulse" },
+      { "coil": 2, "iec": "%IX0.2", "plcVar": "Emergencia",       "json": "inputs.emergencia",       "mode": "level", "activeHigh": true },
+      { "coil": 3, "iec": "%IX0.3", "plcVar": "Sensor_Entrada",   "json": "inputs.sensorEntrada",    "mode": "level" },
+      { "coil": 4, "iec": "%IX0.4", "plcVar": "Selector_Destino", "json": "inputs.selectorDestinoB", "mode": "level", "semantics": "0=A,1=B" },
+      { "coil": 5, "iec": "%IX0.5", "plcVar": "Estiba_Llena_A",   "json": "inputs.estibaLlenaA",     "mode": "level", "semantics": "1=estiba A llena o en cambio" },
+      { "coil": 6, "iec": "%IX0.6", "plcVar": "Estiba_Llena_B",   "json": "inputs.estibaLlenaB",     "mode": "level", "semantics": "1=estiba B llena o en cambio" }
+    ]
+  },
+  "discreteInputs": {
+    "direction": "plc_to_master",
+    "baseAddress": 0,
+    "count": 7,
+    "map": [
+      { "di": 0, "iec": "%QX0.0", "plcVar": "Motor_Cinta_Entrada",  "json": "outputs.cintaEntrada" },
+      { "di": 1, "iec": "%QX0.1", "plcVar": "Actuador_Desviador",   "json": "outputs.desviadorActivo" },
+      { "di": 2, "iec": "%QX0.2", "plcVar": "Motor_Cinta_Salida_A", "json": "outputs.cintaSalidaA" },
+      { "di": 3, "iec": "%QX0.3", "plcVar": "Motor_Cinta_Salida_B", "json": "outputs.cintaSalidaB" },
+      { "di": 4, "iec": "%QX0.4", "plcVar": "Baliza_Alarma",        "json": "outputs.balizaAlarma" },
+      { "di": 5, "iec": "%QX0.5", "plcVar": "Heartbeat_Out",        "json": "heartbeat", "periodMs": 1040, "timerPT": "T#500ms" },
+      { "di": 6, "iec": "%QX0.6", "plcVar": "Senal_Cambio_Estiba",  "json": "outputs.senalCambioEstiba" }
+    ]
+  },
+  "timing": { "pollIntervalMs": 50, "pulseWidthMs": 150, "heartbeatStaleMs": 1500, "classificationTime": "T#4s" }
+}

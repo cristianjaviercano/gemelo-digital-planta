@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visor BPMN 2.0: Corrida de medición y cambio de estiba (Fase 5, diseño aprobado)</title>
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-js.css" />
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/diagram-js.css" />
+  <link rel="stylesheet" href="https://unpkg.com/bpmn-js@17.11.1/dist/assets/bpmn-font/css/bpmn.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title-area h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .title-area p {
+      font-size: 12px;
+      color: #64748b;
+    }
+    .toolbar { display: flex; gap: 10px; }
+    .btn {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { background: #e2e8f0; }
+    .btn-primary {
+      background: #0284c7;
+      color: #fff;
+      border-color: #0369a1;
+    }
+    .btn-primary:hover { background: #0369a1; }
+    #canvas {
+      flex: 1;
+      background: #fafafa;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title-area">
+      <h1>📐 Corrida de medición y cambio de estiba (Fase 5, diseño aprobado)</h1>
+      <p>Estándar BPMN 2.0 (OMG) • Visualizador Interactivo bpmn-js</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="btnZoomIn">🔍 Zoom +</button>
+      <button class="btn" id="btnZoomOut">🔍 Zoom -</button>
+      <button class="btn" id="btnReset">⟲ Ajustar Vista</button>
+      <button class="btn btn-primary" id="btnDownload">💾 Descargar XML (.bpmn)</button>
+    </div>
+  </header>
+
+  <div id="canvas"></div>
+
+  <script src="https://unpkg.com/bpmn-js@17.11.1/dist/bpmn-navigated-viewer.development.js"></script>
+  <script>
+    const bpmnXML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="SILOGE BPMN Modeler" exporterVersion="3.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Corrida de medición y cambio de estiba (Fase 5, diseño aprobado)" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_1" name="Operador">
+        <bpmn:flowNodeRef>Inicio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Corrida</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Cambio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Marcha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Fin</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Informe</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Fin</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_2" name="HMI 3D · planta emulada">
+        <bpmn:flowNodeRef>H_Registro</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Depositar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_KPI</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Llena</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Senal</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Liberar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_CSV</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_3" name="Middleware Modbus–WebSocket">
+        <bpmn:flowNodeRef>M_Llena</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>M_Publicar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>M_Liberar</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_4" name="PLC · FSM de clasificación">
+        <bpmn:flowNodeRef>P_S5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_S0</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_S1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Inicio" name="Inicio de turno">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="O_Corrida" name="Iniciar corrida y elegir indicadores">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="O_Cambio" name="Retirar estiba llena y colocar una vacía">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="O_Marcha" name="Pulsar Marcha">
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="O_Fin" name="¿Finalizar corrida?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="O_Informe" name="Finalizar corrida y descargar los CSV">
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="Fin" name="Informe de corrida generado">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="H_Registro" name="Abrir registro de eventos de la corrida">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="H_Depositar" name="Depositar paquete en la estiba (patrón por capas)">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="H_KPI" name="Registrar evento y recalcular KPIs en tiempo real">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="H_Llena" name="¿Estiba en su capacidad?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sendTask id="H_Senal" name="Emitir estibaLlena (sensor emulado)">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:sendTask id="H_Liberar" name="Liberar estibaLlena y contar estiba completada">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:manualTask id="H_CSV" name="Generar CSV: kpis, paquetes y eventos">
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:serviceTask id="M_Llena" name="Escribir coil de estiba llena (FC05)">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="M_Publicar" name="Difundir ESPERANDO_CAMBIO_ESTIBA">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="M_Liberar" name="Escribir coil de estiba liberada (FC05)">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:task id="P_S5" name="S5 · Esperando cambio de estiba: cintas paradas y señal Q6 (T9)">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="P_S0" name="S0 · Reposo; Marcha bloqueada mientras haya estiba llena (T10)">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="P_S1" name="S1 · Esperando paquete (T2)">
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Inicio" targetRef="O_Corrida" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="O_Corrida" targetRef="H_Registro" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="H_Registro" targetRef="H_Depositar" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="H_Depositar" targetRef="H_KPI" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="H_KPI" targetRef="H_Llena" />
+    <bpmn:sequenceFlow id="Flow_6" name="No" sourceRef="H_Llena" targetRef="O_Fin" />
+    <bpmn:sequenceFlow id="Flow_7" name="Sí" sourceRef="H_Llena" targetRef="H_Senal" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="H_Senal" targetRef="M_Llena" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="M_Llena" targetRef="P_S5" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="P_S5" targetRef="M_Publicar" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="M_Publicar" targetRef="O_Cambio" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="O_Cambio" targetRef="H_Liberar" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="H_Liberar" targetRef="M_Liberar" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="M_Liberar" targetRef="P_S0" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="P_S0" targetRef="O_Marcha" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="O_Marcha" targetRef="P_S1" />
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="P_S1" targetRef="O_Fin" />
+    <bpmn:sequenceFlow id="Flow_18" name="No: siguiente paquete" sourceRef="O_Fin" targetRef="H_Depositar" />
+    <bpmn:sequenceFlow id="Flow_19" name="Sí" sourceRef="O_Fin" targetRef="H_CSV" />
+    <bpmn:sequenceFlow id="Flow_20" sourceRef="H_CSV" targetRef="O_Informe" />
+    <bpmn:sequenceFlow id="Flow_21" sourceRef="O_Informe" targetRef="Fin" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="100" y="60" width="3510" height="600" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+        <dc:Bounds x="130" y="60" width="3480" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+        <dc:Bounds x="130" y="210" width="3480" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+        <dc:Bounds x="130" y="360" width="3480" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+        <dc:Bounds x="130" y="510" width="3480" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Inicio_di" bpmnElement="Inicio">
+        <dc:Bounds x="192" y="117" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Corrida_di" bpmnElement="O_Corrida">
+        <dc:Bounds x="320" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Cambio_di" bpmnElement="O_Cambio">
+        <dc:Bounds x="1850" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Marcha_di" bpmnElement="O_Marcha">
+        <dc:Bounds x="2530" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Fin_di" bpmnElement="O_Fin" isMarkerVisible="true">
+        <dc:Bounds x="2905" y="110" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Informe_di" bpmnElement="O_Informe">
+        <dc:Bounds x="3210" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fin_di" bpmnElement="Fin">
+        <dc:Bounds x="3422" y="117" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Registro_di" bpmnElement="H_Registro">
+        <dc:Bounds x="490" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Depositar_di" bpmnElement="H_Depositar">
+        <dc:Bounds x="660" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_KPI_di" bpmnElement="H_KPI">
+        <dc:Bounds x="830" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Llena_di" bpmnElement="H_Llena" isMarkerVisible="true">
+        <dc:Bounds x="1035" y="260" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Senal_di" bpmnElement="H_Senal">
+        <dc:Bounds x="1170" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Liberar_di" bpmnElement="H_Liberar">
+        <dc:Bounds x="2020" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_CSV_di" bpmnElement="H_CSV">
+        <dc:Bounds x="3040" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Llena_di" bpmnElement="M_Llena">
+        <dc:Bounds x="1340" y="395" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Publicar_di" bpmnElement="M_Publicar">
+        <dc:Bounds x="1680" y="395" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Liberar_di" bpmnElement="M_Liberar">
+        <dc:Bounds x="2190" y="395" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S5_di" bpmnElement="P_S5">
+        <dc:Bounds x="1510" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S0_di" bpmnElement="P_S0">
+        <dc:Bounds x="2360" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S1_di" bpmnElement="P_S1">
+        <dc:Bounds x="2700" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="228" y="135" />
+        <di:waypoint x="320" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="440" y="135" />
+        <di:waypoint x="465" y="135" />
+        <di:waypoint x="465" y="285" />
+        <di:waypoint x="490" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="610" y="285" />
+        <di:waypoint x="660" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="780" y="285" />
+        <di:waypoint x="830" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="950" y="285" />
+        <di:waypoint x="1035" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1085" y="285" />
+        <di:waypoint x="1100" y="285" />
+        <di:waypoint x="1100" y="224" />
+        <di:waypoint x="2890" y="224" />
+        <di:waypoint x="2890" y="135" />
+        <di:waypoint x="2905" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1085" y="285" />
+        <di:waypoint x="1170" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1290" y="285" />
+        <di:waypoint x="1315" y="285" />
+        <di:waypoint x="1315" y="435" />
+        <di:waypoint x="1340" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1460" y="435" />
+        <di:waypoint x="1485" y="435" />
+        <di:waypoint x="1485" y="585" />
+        <di:waypoint x="1510" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1630" y="585" />
+        <di:waypoint x="1655" y="585" />
+        <di:waypoint x="1655" y="435" />
+        <di:waypoint x="1680" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1800" y="435" />
+        <di:waypoint x="1825" y="435" />
+        <di:waypoint x="1825" y="135" />
+        <di:waypoint x="1850" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1970" y="135" />
+        <di:waypoint x="1995" y="135" />
+        <di:waypoint x="1995" y="285" />
+        <di:waypoint x="2020" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="2140" y="285" />
+        <di:waypoint x="2165" y="285" />
+        <di:waypoint x="2165" y="435" />
+        <di:waypoint x="2190" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="2310" y="435" />
+        <di:waypoint x="2335" y="435" />
+        <di:waypoint x="2335" y="585" />
+        <di:waypoint x="2360" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="2480" y="585" />
+        <di:waypoint x="2505" y="585" />
+        <di:waypoint x="2505" y="135" />
+        <di:waypoint x="2530" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="2650" y="135" />
+        <di:waypoint x="2675" y="135" />
+        <di:waypoint x="2675" y="585" />
+        <di:waypoint x="2700" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="2820" y="585" />
+        <di:waypoint x="2862" y="585" />
+        <di:waypoint x="2862" y="135" />
+        <di:waypoint x="2905" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="2930" y="160" />
+        <di:waypoint x="2930" y="198" />
+        <di:waypoint x="720" y="198" />
+        <di:waypoint x="720" y="325" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="2955" y="135" />
+        <di:waypoint x="2997" y="135" />
+        <di:waypoint x="2997" y="285" />
+        <di:waypoint x="3040" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="3160" y="285" />
+        <di:waypoint x="3185" y="285" />
+        <di:waypoint x="3185" y="135" />
+        <di:waypoint x="3210" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="3330" y="135" />
+        <di:waypoint x="3422" y="135" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+`;
+    const viewer = new BpmnJS({ container: '#canvas' });
+
+    viewer.importXML(bpmnXML).then(function() {
+      const canvas = viewer.get('canvas');
+      canvas.zoom('fit-viewport');
+    }).catch(function(err) {
+      console.error('Error renderizando BPMN:', err);
+    });
+
+    document.getElementById('btnZoomIn').addEventListener('click', () => viewer.get('zoomScroll').stepZoom(1));
+    document.getElementById('btnZoomOut').addEventListener('click', () => viewer.get('zoomScroll').stepZoom(-1));
+    document.getElementById('btnReset').addEventListener('click', () => viewer.get('canvas').zoom('fit-viewport'));
+    
+    document.getElementById('btnDownload').addEventListener('click', () => {
+      const blob = new Blob([bpmnXML], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Corrida_de_medición_y_cambio_de_estiba_(Fase_5,_diseño_aprobado).bpmn';
+      a.click();
+    });
+  </script>
+</body>
+</html>

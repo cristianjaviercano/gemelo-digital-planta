@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 520" width="1240" height="520" font-family="Helvetica Neue, Helvetica, Arial, sans-serif" role="img" aria-label="Arquitectura de tres capas del sistema">
+<title>Arquitectura de tres capas del sistema</title>
+<defs>
+  <marker id="punta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#1f2329"/></marker>
+  <marker id="punta-gris" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#5f6873"/></marker>
+  <marker id="punta-salida" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2c6fb7"/></marker>
+  <marker id="punta-entrada" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0,0 L10,5 L0,10 z" fill="#2f7a4a"/></marker>
+  <marker id="cota" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M0,1 L10,5 L0,9" fill="none" stroke="#5f6873" stroke-width="1.4"/></marker>
+</defs>
+<rect width="1240" height="520" fill="#ffffff"/>
+<circle cx="70.0" cy="205.0" r="15" fill="#ffffff" stroke="#1f2329" stroke-width="1.6"/>
+<path d="M45,265 Q70,225 95,265" fill="#ffffff" stroke="#1f2329" stroke-width="1.6"/>
+<text x="70.0" y="290.0" font-size="13" text-anchor="middle" fill="#1f2329" font-weight="600">Operador</text>
+<line x1="100.0" y1="220.0" x2="178.0" y2="220.0" stroke="#1f2329" stroke-width="1.4" marker-end="url(#punta)"/>
+<line x1="178.0" y1="250.0" x2="100.0" y2="250.0" stroke="#1f2329" stroke-width="1.4" marker-end="url(#punta)"/>
+<text x="139.0" y="212.0" font-size="10" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">órdenes</text>
+<text x="139.0" y="268.0" font-size="10" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">vista 3D</text>
+<rect x="185.0" y="70.0" width="330.0" height="330.0" rx="8" fill="#f7f8fa" stroke="#1f2329" stroke-width="1.6"/>
+<text x="199.0" y="96.0" font-size="15" text-anchor="start" fill="#1f2329" font-weight="700">C3 · HMI 3D</text>
+<text x="199.0" y="114.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">Navegador · Vite, Three.js, Tailwind · :5173</text>
+<rect x="203.0" y="130.0" width="294.0" height="92.0" rx="6" fill="#ffffff" stroke="#9aa3ad" stroke-width="1"/>
+<text x="215.0" y="151.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="600">Panel de operador</text>
+<text x="215.0" y="172.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Marcha, Parada, Emergencia, destino A/B</text>
+<text x="215.0" y="189.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Estado, conexiones, contadores, eventos</text>
+<rect x="203.0" y="236.0" width="294.0" height="146.0" rx="6" fill="#ffffff" stroke="#9aa3ad" stroke-width="1"/>
+<text x="215.0" y="257.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="600">Planta emulada</text>
+<text x="215.0" y="278.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Cintas (M1, M2, M3) y paleta Y1 según %QX</text>
+<text x="215.0" y="296.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Sensores B1 (AABB) y B2/B3 (estibas)</text>
+<text x="215.0" y="314.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Balizas H1/H2, cajas y estibas</text>
+<text x="215.0" y="332.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Nunca decide transiciones de proceso</text>
+<line x1="515.0" y1="190.0" x2="600.0" y2="190.0" stroke="#2c6fb7" stroke-width="1.6" marker-end="url(#punta-salida)"/>
+<line x1="600.0" y1="250.0" x2="515.0" y2="250.0" stroke="#2f7a4a" stroke-width="1.6" marker-end="url(#punta-entrada)"/>
+<text x="557.0" y="180.0" font-size="10" text-anchor="middle" fill="#2c6fb7" font-weight="normal" font-style="italic">comandos</text>
+<text x="557.0" y="268.0" font-size="10" text-anchor="middle" fill="#2f7a4a" font-weight="normal" font-style="italic">estado · 50 ms</text>
+<text x="557.0" y="222.0" font-size="12" text-anchor="middle" fill="#1f2329" font-weight="600">WebSocket</text>
+<text x="557.0" y="237.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">:8080</text>
+<rect x="605.0" y="70.0" width="270.0" height="330.0" rx="8" fill="#f7f8fa" stroke="#1f2329" stroke-width="1.6"/>
+<text x="619.0" y="96.0" font-size="15" text-anchor="start" fill="#1f2329" font-weight="700">C2 · Middleware</text>
+<text x="619.0" y="114.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">Node.js · modbus-serial, ws, pino</text>
+<text x="623.0" y="140.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Lista blanca de comandos</text>
+<text x="623.0" y="164.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Cola FIFO, una transacción a la vez</text>
+<text x="623.0" y="188.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Lectura FC01 + FC02 cada 50 ms</text>
+<text x="623.0" y="212.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">λ⁻¹: bits de salida → estado</text>
+<text x="623.0" y="236.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Vigilancia del heartbeat (1,5 s)</text>
+<text x="623.0" y="260.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Degradación segura</text>
+<text x="623.0" y="284.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Reconexión 0,5 → 5 s</text>
+<text x="623.0" y="308.0" font-size="12" text-anchor="start" fill="#1f2329" font-weight="normal">Inicialización segura (FC15)</text>
+<line x1="875.0" y1="190.0" x2="955.0" y2="190.0" stroke="#2c6fb7" stroke-width="1.6" marker-end="url(#punta-salida)"/>
+<line x1="955.0" y1="250.0" x2="875.0" y2="250.0" stroke="#2f7a4a" stroke-width="1.6" marker-end="url(#punta-entrada)"/>
+<text x="915.0" y="180.0" font-size="10" text-anchor="middle" fill="#2c6fb7" font-weight="normal" font-style="italic">FC05 / FC15</text>
+<text x="915.0" y="268.0" font-size="10" text-anchor="middle" fill="#2f7a4a" font-weight="normal" font-style="italic">FC01 / FC02</text>
+<text x="915.0" y="222.0" font-size="12" text-anchor="middle" fill="#1f2329" font-weight="600">Modbus TCP</text>
+<text x="915.0" y="237.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">:502 · :5020</text>
+<rect x="960.0" y="70.0" width="260.0" height="330.0" rx="8" fill="#f7f8fa" stroke="#1f2329" stroke-width="1.6"/>
+<text x="974.0" y="96.0" font-size="15" text-anchor="start" fill="#1f2329" font-weight="700">C1 · PLC</text>
+<text x="974.0" y="114.0" font-size="11" text-anchor="start" fill="#5f6873" font-weight="normal" font-style="italic">IEC 61131-3 · ciclo de 10 ms</text>
+<rect x="978.0" y="130.0" width="224.0" height="46.0" rx="6" fill="#ffffff" stroke="#9aa3ad" stroke-width="1"/>
+<text x="1090.0" y="158.0" font-size="12" text-anchor="middle" fill="#1f2329" font-weight="normal">Imagen de entradas %IX0.0–0.6</text>
+<rect x="978.0" y="205.0" width="224.0" height="46.0" rx="6" fill="#ffffff" stroke="#9aa3ad" stroke-width="1"/>
+<text x="1090.0" y="233.0" font-size="12" text-anchor="middle" fill="#1f2329" font-weight="600">FB_ClasificadorFSM</text>
+<rect x="978.0" y="280.0" width="224.0" height="46.0" rx="6" fill="#ffffff" stroke="#9aa3ad" stroke-width="1"/>
+<text x="1090.0" y="308.0" font-size="12" text-anchor="middle" fill="#1f2329" font-weight="normal">Imagen de salidas %QX0.0–0.6</text>
+<text x="1090.0" y="246.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">máquina de Moore · T1–T10</text>
+<line x1="1090.0" y1="176.0" x2="1090.0" y2="203.0" stroke="#1f2329" stroke-width="1.2" marker-end="url(#punta)"/>
+<line x1="1090.0" y1="251.0" x2="1090.0" y2="278.0" stroke="#1f2329" stroke-width="1.2" marker-end="url(#punta)"/>
+<text x="978.0" y="350.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">Laboratorio: CODESYS Control Win V3 · :502</text>
+<text x="978.0" y="370.0" font-size="11" text-anchor="start" fill="#1f2329" font-weight="normal">macOS: PLC virtual (Node.js) · :5020</text>
+<path d="M1090,400 L1090,450 L350,450 L350,402" fill="none" stroke="#5f6873" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#punta-gris)"/>
+<text x="720.0" y="472.0" font-size="12" text-anchor="middle" fill="#5f6873" font-weight="normal" font-style="italic">Lazo de control: salidas %QX → movimiento de la planta → sensor B1 → entrada %IX0.3</text>
+<text x="720.0" y="500.0" font-size="11" text-anchor="middle" fill="#5f6873" font-weight="normal">Azul: órdenes hacia el PLC · Verde: estado desde el PLC</text>
+</svg>

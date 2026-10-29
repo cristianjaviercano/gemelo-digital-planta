@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/src/styles/industrial-theme.css" />
+    <title>Planta de clasificación · Gemelo digital</title>
+  </head>
+  <body class="h-full overflow-hidden bg-planta-fondo text-planta-texto antialiased">
+    <div class="flex h-full flex-col lg:flex-row">
+      <main id="escena" class="relative min-h-0 flex-1" aria-label="Planta 3D">
+        <div id="aviso-escena" class="aviso-escena" role="status" hidden></div>
+        <p class="ayuda-escena">Arrastrar: orbitar · Rueda: zoom · Clic derecho: desplazar</p>
+      </main>
+      <aside
+        id="panel"
+        class="max-h-[46vh] w-full shrink-0 overflow-y-auto border-t border-planta-borde bg-planta-panel lg:max-h-none lg:w-80 lg:border-l lg:border-t-0"
+        aria-label="Panel de operador"
+      ></aside>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

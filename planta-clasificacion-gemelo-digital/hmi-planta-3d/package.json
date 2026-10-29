@@ -1,0 +1,27 @@
+{
+  "name": "hmi-planta-3d",
+  "version": "0.1.0",
+  "description": "Gemelo digital 3D reactivo (Three.js + Tailwind) de la planta de clasificación",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test test/plantModel.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.5"
+  }
+}

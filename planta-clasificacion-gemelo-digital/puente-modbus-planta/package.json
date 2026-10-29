@@ -1,0 +1,29 @@
+{
+  "name": "puente-modbus-planta",
+  "version": "0.1.0",
+  "description": "Middleware Modbus TCP -> WebSocket para la planta virtual de clasificación",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js | pino-pretty",
+    "test": "node --test test/contrato.test.js test/integracion.test.js",
+    "consola": "node scripts/consola.js",
+    "demo": "node scripts/demo.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "dotenv": "18.0.9",
+    "modbus-serial": "8.0.25",
+    "pino": "10.4.0",
+    "ws": "8.22.0"
+  },
+  "devDependencies": {
+    "pino-pretty": "13.2.0"
+  }
+}

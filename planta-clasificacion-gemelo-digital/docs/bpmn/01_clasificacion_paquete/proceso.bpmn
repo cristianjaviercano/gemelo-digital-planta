@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="SILOGE BPMN Modeler" exporterVersion="3.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Clasificación de un paquete gobernada por PLC" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_1" name="Operador">
+        <bpmn:flowNodeRef>Inicio</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Destino</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Marcha</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Paquete</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>O_Rearme</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_2" name="HMI 3D · planta emulada">
+        <bpmn:flowNodeRef>H_Comando</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Animar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Estado</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Haz</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Desviar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>H_Correcto</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Fin_OK</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Fin_Mal</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_3" name="Middleware Modbus–WebSocket">
+        <bpmn:flowNodeRef>M_Escribir</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>M_Leer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>M_Vivo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>M_Degradar</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_4" name="PLC · FSM de clasificación">
+        <bpmn:flowNodeRef>P_Leer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_Emergencia</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_S4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_Flanco</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_S1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_Destino</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_S2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_S3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>P_Salidas</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Inicio" name="Planta en reposo (S0)">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="O_Destino" name="Seleccionar destino A/B">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="O_Marcha" name="Pulsar Marcha">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="O_Paquete" name="Generar paquete en la cinta de entrada">
+      <bpmn:incoming>Flow_23</bpmn:incoming>
+      <bpmn:outgoing>Flow_24</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="O_Rearme" name="Liberar la seta y pulsar Parada (rearme)">
+      <bpmn:incoming>Flow_27</bpmn:incoming>
+      <bpmn:outgoing>Flow_28</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sendTask id="H_Comando" name="Enviar comando JSON por WebSocket">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_25</bpmn:incoming>
+      <bpmn:incoming>Flow_28</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:sendTask>
+    <bpmn:serviceTask id="H_Animar" name="Mover cintas, paleta y baliza según %QX">
+      <bpmn:incoming>Flow_21</bpmn:incoming>
+      <bpmn:outgoing>Flow_22</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="H_Estado" name="¿Estado publicado?">
+      <bpmn:incoming>Flow_22</bpmn:incoming>
+      <bpmn:outgoing>Flow_23</bpmn:outgoing>
+      <bpmn:outgoing>Flow_26</bpmn:outgoing>
+      <bpmn:outgoing>Flow_27</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="H_Haz" name="Detectar paquete en el haz (AABB) y emitir sensorEntrada">
+      <bpmn:incoming>Flow_24</bpmn:incoming>
+      <bpmn:outgoing>Flow_25</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="H_Desviar" name="Desviar según la posición física de la paleta y despachar">
+      <bpmn:incoming>Flow_26</bpmn:incoming>
+      <bpmn:outgoing>Flow_29</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="H_Correcto" name="¿Ruta igual al destino muestreado?">
+      <bpmn:incoming>Flow_29</bpmn:incoming>
+      <bpmn:outgoing>Flow_30</bpmn:outgoing>
+      <bpmn:outgoing>Flow_31</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="Fin_OK" name="Paquete despachado por su ruta">
+      <bpmn:incoming>Flow_30</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="Fin_Mal" name="Paquete mal clasificado">
+      <bpmn:incoming>Flow_31</bpmn:incoming>
+      <bpmn:errorEventDefinition id="ErrorDef_Fin_Mal" />
+    </bpmn:endEvent>
+    <bpmn:serviceTask id="M_Escribir" name="Validar en lista blanca y escribir coil (FC05)">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="M_Leer" name="Leer FC01 y FC02 cada 50 ms y difundir estado">
+      <bpmn:incoming>Flow_17</bpmn:incoming>
+      <bpmn:incoming>Flow_20</bpmn:incoming>
+      <bpmn:outgoing>Flow_18</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="M_Vivo" name="¿PLC vivo? (conexión y heartbeat)">
+      <bpmn:incoming>Flow_18</bpmn:incoming>
+      <bpmn:outgoing>Flow_19</bpmn:outgoing>
+      <bpmn:outgoing>Flow_21</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:serviceTask id="M_Degradar" name="Degradación segura y reconexión con FC15">
+      <bpmn:incoming>Flow_19</bpmn:incoming>
+      <bpmn:outgoing>Flow_20</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:serviceTask id="P_Leer" name="Leer %IX y evaluar δ en el ciclo de scan (10 ms)">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:exclusiveGateway id="P_Emergencia" name="¿Emergencia activa?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="P_S4" name="S4 · Parada de emergencia (T1)">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_16</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="P_Flanco" name="¿Flanco del sensor en S1?">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="P_S1" name="S1 · Esperando paquete (T2, T6)">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="P_Destino" name="¿Destino d muestreado?">
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="P_S2" name="S2 · Clasificar ruta A (T4)">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="P_S3" name="S3 · Clasificar ruta B (T5)">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:serviceTask id="P_Salidas" name="Escribir %QX (λ) y heartbeat">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:incoming>Flow_16</bpmn:incoming>
+      <bpmn:outgoing>Flow_17</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="Inicio" targetRef="O_Destino" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="O_Destino" targetRef="O_Marcha" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="O_Marcha" targetRef="H_Comando" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="H_Comando" targetRef="M_Escribir" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="M_Escribir" targetRef="P_Leer" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="P_Leer" targetRef="P_Emergencia" />
+    <bpmn:sequenceFlow id="Flow_7" name="Sí" sourceRef="P_Emergencia" targetRef="P_S4" />
+    <bpmn:sequenceFlow id="Flow_8" name="No" sourceRef="P_Emergencia" targetRef="P_Flanco" />
+    <bpmn:sequenceFlow id="Flow_9" name="No" sourceRef="P_Flanco" targetRef="P_S1" />
+    <bpmn:sequenceFlow id="Flow_10" name="Sí" sourceRef="P_Flanco" targetRef="P_Destino" />
+    <bpmn:sequenceFlow id="Flow_11" name="d = 0" sourceRef="P_Destino" targetRef="P_S2" />
+    <bpmn:sequenceFlow id="Flow_12" name="d = 1" sourceRef="P_Destino" targetRef="P_S3" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="P_S1" targetRef="P_Salidas" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="P_S2" targetRef="P_Salidas" />
+    <bpmn:sequenceFlow id="Flow_15" sourceRef="P_S3" targetRef="P_Salidas" />
+    <bpmn:sequenceFlow id="Flow_16" sourceRef="P_S4" targetRef="P_Salidas" />
+    <bpmn:sequenceFlow id="Flow_17" sourceRef="P_Salidas" targetRef="M_Leer" />
+    <bpmn:sequenceFlow id="Flow_18" sourceRef="M_Leer" targetRef="M_Vivo" />
+    <bpmn:sequenceFlow id="Flow_19" name="No" sourceRef="M_Vivo" targetRef="M_Degradar" />
+    <bpmn:sequenceFlow id="Flow_20" name="Reintento" sourceRef="M_Degradar" targetRef="M_Leer" />
+    <bpmn:sequenceFlow id="Flow_21" name="Sí" sourceRef="M_Vivo" targetRef="H_Animar" />
+    <bpmn:sequenceFlow id="Flow_22" sourceRef="H_Animar" targetRef="H_Estado" />
+    <bpmn:sequenceFlow id="Flow_23" name="Esperando paquete" sourceRef="H_Estado" targetRef="O_Paquete" />
+    <bpmn:sequenceFlow id="Flow_24" sourceRef="O_Paquete" targetRef="H_Haz" />
+    <bpmn:sequenceFlow id="Flow_25" sourceRef="H_Haz" targetRef="H_Comando" />
+    <bpmn:sequenceFlow id="Flow_26" name="Clasificando" sourceRef="H_Estado" targetRef="H_Desviar" />
+    <bpmn:sequenceFlow id="Flow_27" name="Emergencia" sourceRef="H_Estado" targetRef="O_Rearme" />
+    <bpmn:sequenceFlow id="Flow_28" sourceRef="O_Rearme" targetRef="H_Comando" />
+    <bpmn:sequenceFlow id="Flow_29" sourceRef="H_Desviar" targetRef="H_Correcto" />
+    <bpmn:sequenceFlow id="Flow_30" name="Sí" sourceRef="H_Correcto" targetRef="Fin_OK" />
+    <bpmn:sequenceFlow id="Flow_31" name="No" sourceRef="H_Correcto" targetRef="Fin_Mal" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="100" y="60" width="4020" height="600" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_1_di" bpmnElement="Lane_1" isHorizontal="true">
+        <dc:Bounds x="130" y="60" width="3990" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_2_di" bpmnElement="Lane_2" isHorizontal="true">
+        <dc:Bounds x="130" y="210" width="3990" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_3_di" bpmnElement="Lane_3" isHorizontal="true">
+        <dc:Bounds x="130" y="360" width="3990" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_4_di" bpmnElement="Lane_4" isHorizontal="true">
+        <dc:Bounds x="130" y="510" width="3990" height="150" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Inicio_di" bpmnElement="Inicio">
+        <dc:Bounds x="192" y="117" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Destino_di" bpmnElement="O_Destino">
+        <dc:Bounds x="320" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Marcha_di" bpmnElement="O_Marcha">
+        <dc:Bounds x="490" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Paquete_di" bpmnElement="O_Paquete">
+        <dc:Bounds x="3380" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="O_Rearme_di" bpmnElement="O_Rearme">
+        <dc:Bounds x="3210" y="95" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Comando_di" bpmnElement="H_Comando">
+        <dc:Bounds x="660" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Animar_di" bpmnElement="H_Animar">
+        <dc:Bounds x="2870" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Estado_di" bpmnElement="H_Estado" isMarkerVisible="true">
+        <dc:Bounds x="3075" y="260" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Haz_di" bpmnElement="H_Haz">
+        <dc:Bounds x="3550" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Desviar_di" bpmnElement="H_Desviar">
+        <dc:Bounds x="3210" y="245" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="H_Correcto_di" bpmnElement="H_Correcto" isMarkerVisible="true">
+        <dc:Bounds x="3415" y="260" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fin_OK_di" bpmnElement="Fin_OK">
+        <dc:Bounds x="3932" y="267" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Fin_Mal_di" bpmnElement="Fin_Mal">
+        <dc:Bounds x="3762" y="267" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Escribir_di" bpmnElement="M_Escribir">
+        <dc:Bounds x="830" y="395" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Leer_di" bpmnElement="M_Leer">
+        <dc:Bounds x="2530" y="395" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Vivo_di" bpmnElement="M_Vivo" isMarkerVisible="true">
+        <dc:Bounds x="2735" y="410" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="M_Degradar_di" bpmnElement="M_Degradar">
+        <dc:Bounds x="2870" y="395" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Leer_di" bpmnElement="P_Leer">
+        <dc:Bounds x="1000" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Emergencia_di" bpmnElement="P_Emergencia" isMarkerVisible="true">
+        <dc:Bounds x="1205" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S4_di" bpmnElement="P_S4">
+        <dc:Bounds x="1510" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Flanco_di" bpmnElement="P_Flanco" isMarkerVisible="true">
+        <dc:Bounds x="1375" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S1_di" bpmnElement="P_S1">
+        <dc:Bounds x="1850" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Destino_di" bpmnElement="P_Destino" isMarkerVisible="true">
+        <dc:Bounds x="1715" y="560" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S2_di" bpmnElement="P_S2">
+        <dc:Bounds x="2190" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_S3_di" bpmnElement="P_S3">
+        <dc:Bounds x="2020" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="P_Salidas_di" bpmnElement="P_Salidas">
+        <dc:Bounds x="2360" y="545" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="228" y="135" />
+        <di:waypoint x="320" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="440" y="135" />
+        <di:waypoint x="490" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="610" y="135" />
+        <di:waypoint x="635" y="135" />
+        <di:waypoint x="635" y="285" />
+        <di:waypoint x="660" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="780" y="285" />
+        <di:waypoint x="805" y="285" />
+        <di:waypoint x="805" y="435" />
+        <di:waypoint x="830" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="950" y="435" />
+        <di:waypoint x="975" y="435" />
+        <di:waypoint x="975" y="585" />
+        <di:waypoint x="1000" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1120" y="585" />
+        <di:waypoint x="1205" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1255" y="585" />
+        <di:waypoint x="1270" y="585" />
+        <di:waypoint x="1270" y="524" />
+        <di:waypoint x="1495" y="524" />
+        <di:waypoint x="1495" y="585" />
+        <di:waypoint x="1510" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1255" y="585" />
+        <di:waypoint x="1375" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1425" y="585" />
+        <di:waypoint x="1440" y="585" />
+        <di:waypoint x="1440" y="524" />
+        <di:waypoint x="1835" y="524" />
+        <di:waypoint x="1835" y="585" />
+        <di:waypoint x="1850" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1425" y="585" />
+        <di:waypoint x="1440" y="585" />
+        <di:waypoint x="1440" y="524" />
+        <di:waypoint x="1700" y="524" />
+        <di:waypoint x="1700" y="585" />
+        <di:waypoint x="1715" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1765" y="585" />
+        <di:waypoint x="1780" y="585" />
+        <di:waypoint x="1780" y="524" />
+        <di:waypoint x="2175" y="524" />
+        <di:waypoint x="2175" y="585" />
+        <di:waypoint x="2190" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1765" y="585" />
+        <di:waypoint x="1780" y="585" />
+        <di:waypoint x="1780" y="524" />
+        <di:waypoint x="2005" y="524" />
+        <di:waypoint x="2005" y="585" />
+        <di:waypoint x="2020" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1970" y="585" />
+        <di:waypoint x="1985" y="585" />
+        <di:waypoint x="1985" y="524" />
+        <di:waypoint x="2345" y="524" />
+        <di:waypoint x="2345" y="585" />
+        <di:waypoint x="2360" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="2310" y="585" />
+        <di:waypoint x="2360" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="2140" y="585" />
+        <di:waypoint x="2155" y="585" />
+        <di:waypoint x="2155" y="524" />
+        <di:waypoint x="2345" y="524" />
+        <di:waypoint x="2345" y="585" />
+        <di:waypoint x="2360" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_16_di" bpmnElement="Flow_16">
+        <di:waypoint x="1630" y="585" />
+        <di:waypoint x="1645" y="585" />
+        <di:waypoint x="1645" y="524" />
+        <di:waypoint x="2345" y="524" />
+        <di:waypoint x="2345" y="585" />
+        <di:waypoint x="2360" y="585" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_17_di" bpmnElement="Flow_17">
+        <di:waypoint x="2480" y="585" />
+        <di:waypoint x="2505" y="585" />
+        <di:waypoint x="2505" y="435" />
+        <di:waypoint x="2530" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18_di" bpmnElement="Flow_18">
+        <di:waypoint x="2650" y="435" />
+        <di:waypoint x="2735" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19_di" bpmnElement="Flow_19">
+        <di:waypoint x="2785" y="435" />
+        <di:waypoint x="2870" y="435" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_20_di" bpmnElement="Flow_20">
+        <di:waypoint x="2930" y="475" />
+        <di:waypoint x="2930" y="498" />
+        <di:waypoint x="2590" y="498" />
+        <di:waypoint x="2590" y="475" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_21_di" bpmnElement="Flow_21">
+        <di:waypoint x="2785" y="435" />
+        <di:waypoint x="2827" y="435" />
+        <di:waypoint x="2827" y="285" />
+        <di:waypoint x="2870" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_22_di" bpmnElement="Flow_22">
+        <di:waypoint x="2990" y="285" />
+        <di:waypoint x="3075" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_23_di" bpmnElement="Flow_23">
+        <di:waypoint x="3125" y="285" />
+        <di:waypoint x="3140" y="285" />
+        <di:waypoint x="3140" y="224" />
+        <di:waypoint x="3365" y="224" />
+        <di:waypoint x="3365" y="135" />
+        <di:waypoint x="3380" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_24_di" bpmnElement="Flow_24">
+        <di:waypoint x="3500" y="135" />
+        <di:waypoint x="3525" y="135" />
+        <di:waypoint x="3525" y="285" />
+        <di:waypoint x="3550" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_25_di" bpmnElement="Flow_25">
+        <di:waypoint x="3610" y="325" />
+        <di:waypoint x="3610" y="348" />
+        <di:waypoint x="720" y="348" />
+        <di:waypoint x="720" y="325" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_26_di" bpmnElement="Flow_26">
+        <di:waypoint x="3125" y="285" />
+        <di:waypoint x="3210" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_27_di" bpmnElement="Flow_27">
+        <di:waypoint x="3125" y="285" />
+        <di:waypoint x="3167" y="285" />
+        <di:waypoint x="3167" y="135" />
+        <di:waypoint x="3210" y="135" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_28_di" bpmnElement="Flow_28">
+        <di:waypoint x="3270" y="175" />
+        <di:waypoint x="3270" y="198" />
+        <di:waypoint x="720" y="198" />
+        <di:waypoint x="720" y="325" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_29_di" bpmnElement="Flow_29">
+        <di:waypoint x="3330" y="285" />
+        <di:waypoint x="3415" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_30_di" bpmnElement="Flow_30">
+        <di:waypoint x="3465" y="285" />
+        <di:waypoint x="3480" y="285" />
+        <di:waypoint x="3480" y="224" />
+        <di:waypoint x="3917" y="224" />
+        <di:waypoint x="3917" y="285" />
+        <di:waypoint x="3932" y="285" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_31_di" bpmnElement="Flow_31">
+        <di:waypoint x="3465" y="285" />
+        <di:waypoint x="3480" y="285" />
+        <di:waypoint x="3480" y="224" />
+        <di:waypoint x="3747" y="224" />
+        <di:waypoint x="3747" y="285" />
+        <di:waypoint x="3762" y="285" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,57 @@
+{
+  "proceso": "Corrida de medición y cambio de estiba (Fase 5, diseño aprobado)",
+  "actores": [
+    "Operador",
+    "HMI 3D · planta emulada",
+    "Middleware Modbus–WebSocket",
+    "PLC · FSM de clasificación"
+  ],
+  "pasos": [
+    { "id": "Inicio", "actor": "Operador", "texto": "Inicio de turno", "tipo": "inicio" },
+    { "id": "O_Corrida", "actor": "Operador", "texto": "Iniciar corrida y elegir indicadores", "tipo": "accion", "bpmn": "userTask" },
+    { "id": "O_Cambio", "actor": "Operador", "texto": "Retirar estiba llena y colocar una vacía", "tipo": "accion", "bpmn": "userTask" },
+    { "id": "O_Marcha", "actor": "Operador", "texto": "Pulsar Marcha", "tipo": "accion", "bpmn": "userTask" },
+    { "id": "O_Fin", "actor": "Operador", "texto": "¿Finalizar corrida?", "tipo": "decision" },
+    { "id": "O_Informe", "actor": "Operador", "texto": "Finalizar corrida y descargar los CSV", "tipo": "accion", "bpmn": "userTask" },
+    { "id": "Fin", "actor": "Operador", "texto": "Informe de corrida generado", "tipo": "fin" },
+
+    { "id": "H_Registro", "actor": "HMI 3D · planta emulada", "texto": "Abrir registro de eventos de la corrida", "tipo": "db" },
+    { "id": "H_Depositar", "actor": "HMI 3D · planta emulada", "texto": "Depositar paquete en la estiba (patrón por capas)", "tipo": "accion", "bpmn": "serviceTask" },
+    { "id": "H_KPI", "actor": "HMI 3D · planta emulada", "texto": "Registrar evento y recalcular KPIs en tiempo real", "tipo": "accion", "bpmn": "serviceTask" },
+    { "id": "H_Llena", "actor": "HMI 3D · planta emulada", "texto": "¿Estiba en su capacidad?", "tipo": "decision" },
+    { "id": "H_Senal", "actor": "HMI 3D · planta emulada", "texto": "Emitir estibaLlena (sensor emulado)", "tipo": "accion", "bpmn": "sendTask" },
+    { "id": "H_Liberar", "actor": "HMI 3D · planta emulada", "texto": "Liberar estibaLlena y contar estiba completada", "tipo": "accion", "bpmn": "sendTask" },
+    { "id": "H_CSV", "actor": "HMI 3D · planta emulada", "texto": "Generar CSV: kpis, paquetes y eventos", "tipo": "dato" },
+
+    { "id": "M_Llena", "actor": "Middleware Modbus–WebSocket", "texto": "Escribir coil de estiba llena (FC05)", "tipo": "accion", "bpmn": "serviceTask" },
+    { "id": "M_Publicar", "actor": "Middleware Modbus–WebSocket", "texto": "Difundir ESPERANDO_CAMBIO_ESTIBA", "tipo": "accion", "bpmn": "serviceTask" },
+    { "id": "M_Liberar", "actor": "Middleware Modbus–WebSocket", "texto": "Escribir coil de estiba liberada (FC05)", "tipo": "accion", "bpmn": "serviceTask" },
+
+    { "id": "P_S5", "actor": "PLC · FSM de clasificación", "texto": "S5 · Esperando cambio de estiba: cintas paradas y señal Q6 (T9)", "tipo": "accion" },
+    { "id": "P_S0", "actor": "PLC · FSM de clasificación", "texto": "S0 · Reposo; Marcha bloqueada mientras haya estiba llena (T10)", "tipo": "accion" },
+    { "id": "P_S1", "actor": "PLC · FSM de clasificación", "texto": "S1 · Esperando paquete (T2)", "tipo": "accion" }
+  ],
+  "conexiones": [
+    ["Inicio", "", "O_Corrida"],
+    ["O_Corrida", "", "H_Registro"],
+    ["H_Registro", "", "H_Depositar"],
+    ["H_Depositar", "", "H_KPI"],
+    ["H_KPI", "", "H_Llena"],
+    ["H_Llena", "No", "O_Fin"],
+    ["H_Llena", "Sí", "H_Senal"],
+    ["H_Senal", "", "M_Llena"],
+    ["M_Llena", "", "P_S5"],
+    ["P_S5", "", "M_Publicar"],
+    ["M_Publicar", "", "O_Cambio"],
+    ["O_Cambio", "", "H_Liberar"],
+    ["H_Liberar", "", "M_Liberar"],
+    ["M_Liberar", "", "P_S0"],
+    ["P_S0", "", "O_Marcha"],
+    ["O_Marcha", "", "P_S1"],
+    ["P_S1", "", "O_Fin"],
+    ["O_Fin", "No: siguiente paquete", "H_Depositar"],
+    ["O_Fin", "Sí", "H_CSV"],
+    ["H_CSV", "", "O_Informe"],
+    ["O_Informe", "", "Fin"]
+  ]
+}

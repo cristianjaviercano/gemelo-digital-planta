@@ -1,0 +1,21 @@
+{
+  "name": "plc-virtual",
+  "version": "0.1.0",
+  "description": "PLC virtual en Node.js con la misma FSM y el mismo esclavo Modbus TCP que plc-codesys (desarrollo sin CODESYS en macOS/Linux)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test test/cp.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "modbus-serial": "8.0.25"
+  }
+}
