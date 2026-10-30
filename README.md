@@ -18,9 +18,9 @@
 Este repositorio contiene un **Gemelo Digital Ciberfísico Completo** de una planta industrial de clasificación y paletizado de paquetería logística bajo el paradigma de **Puesta en Marcha Virtual (*Virtual Commissioning*)**.
 
 El sistema desacopla estrictamente los niveles de la pirámide de automatización **ISA-95 / IEC 62264**:
-- **Nivel 1–2 (OT / Control):** Máquina de Estados Finitos de Moore evaluada en tiempo determinista (Texto Estructurado ST en **CODESYS V3.5** o runtime emulado en Node.js).
-- **Nivel 2 (Middleware):** Pasarela de integración **Modbus TCP $\leftrightarrow$ WebSocket** con serialización JSON inmutable y contrato de datos v1.1.0.
-- **Nivel 0–1 (IT / Cinemática y HMI 3D):** Renderizador interactivo en tiempo real con **Three.js** con modelos paramétricos PBR de alta fidelidad mecánica (motorreductores trifásicos con aletas y caja M20, perfilería Bosch Rexroth 45×45 con pies autonivelantes, actuadores neumáticos ISO 15552, fotoceldas IP67 con catadióptrico y armario de control PLC con HMI).
+- **Nivel 1–2 (OT / Control):** Máquina de Estados Finitos de Moore (`S0..S7`) evaluada en tiempo determinista (Texto Estructurado ST en **CODESYS V3.5** o runtime emulado en Node.js), con cierre de lazo por fotoceldas de descarga (`%IX0.7`, `%IX1.0`), indexador neumático de admisión (`%QX0.7`), ruteo multimodo (`Escáner SKU`, `Auto-Balanceo`, `Manual`), Watchdog de atasco (`S6 · FALLA_ATASCO`) y estación de inspección `NO_READ` (`S7 · INSPECCION_NO_READ`).
+- **Nivel 2 (Middleware):** Pasarela de integración **Modbus TCP $\leftrightarrow$ WebSocket** con soporte completo de las **4 tablas estándar Modbus (`FC01/05 Coils`, `FC02 Discrete Inputs`, `FC03/06 Holding Registers`, `FC04 Input Registers`)** y contrato de datos inmutable **v1.2.0**.
+- **Nivel 0–1 (IT / Cinemática, Sorting, Paletizado 4 Niveles y HMI 3D):** Renderizador interactivo en tiempo real con **Three.js** con modelos paramétricos PBR de alta fidelidad mecánica, catálogo de **4 formatos físicos de paquetes 3D** (`Express 3.5 kg`, `Frágil 6.0 kg`, `Estándar 11.5 kg`, `Pesado 18.0 kg` + `NO_READ`) con reglas de sorting conmutables (**Por Prioridad/Tipo** o **Por Báscula Dinámica de Peso**), **paletizado de 4 niveles completos (64 cajas por estiba, 16 cajas por cama 4×4)**, barra de **KPIs Ejecutivos B2B** (`Throughput cajas/h`, `kg despachados`, `Calidad OEE %`) y el panel pedagógico **«Rayos X del PLC»** (animación del ciclo de scan en 3 pasos + 3 peldaños de Lógica de Escalera iluminados en vivo).
 
 ---
 
@@ -44,23 +44,23 @@ La ingeniería formal, ecuaciones diferenciales y especificación de procesos BP
 ```mermaid
 flowchart LR
   subgraph C3["C3 · HMI / SCADA 3D (Three.js)"]
-    K3["Cinemática 3D"]
-    SENS["Emulación Sensor AABB"]
-    HUD["HUD CSS2D + Panel Mando"]
+    K3["Cinemática + Paletizado 4 Niveles (64 cajas)"]
+    SENS["Sorting Multiformato + Sensores AABB"]
+    HUD["Rayos X del PLC + KPIs B2B + Panel Mando"]
   end
   subgraph C2["C2 · Middleware Node.js"]
     WSS["Servidor WebSocket :8080"]
-    CONTRATO["Contrato de Datos v1.1.0"]
+    CONTRATO["Contrato de Datos v1.2.0"]
     MBC["Cliente Modbus TCP (Polling 50 ms)"]
   end
   subgraph C1["C1 · PLC (CODESYS / Virtual)"]
     SLV["Esclavo Modbus TCP :502"]
-    FSM["FSM Clasificador Moore (ST)"]
-    HB["Heartbeat Supervisión"]
+    FSM["FSM Clasificador Moore S0..S7 (ST)"]
+    HB["Heartbeat + Watchdog TON"]
   end
 
   C3 <-->|"JSON / WebSocket"| C2
-  C2 <-->|"Modbus TCP (FC01, FC02, FC05, FC15)"| C1
+  C2 <-->|"Modbus TCP (FC01, FC02, FC03, FC04, FC05, FC06)"| C1
 ```
 
 ---

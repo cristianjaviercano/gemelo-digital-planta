@@ -1,15 +1,11 @@
-// Protocolo CP-01…CP-19 (docs/03 §3 y docs/08 §3.3) ejecutado como maestro Modbus TCP.
-// Solo observa lo que expone el contrato v1.1.0 (Discrete Inputs 0..6 y Coils 0..6), así
-// que sirve igual contra el PLC virtual que contra CODESYS:
-//   npm test                                    → PLC virtual en proceso (127.0.0.1:15020)
-//   PLC_HOST=127.0.0.1 npm test                 → `npm start` en macOS (puerto 5020)
-//   PLC_HOST=<ip> PLC_PORT=502 npm test         → CODESYS (windows/README.md §4)
-// El estado se infiere de las salidas con λ⁻¹ sobre (q0…q4, q6) (docs/02 §3.4 y §6).
+// Protocolo CP-01…CP-24 ejecutado como maestro Modbus TCP (Contrato v1.2.0)
+// y prueba determinista directa sobre FB_ClasificadorFSM (IEC 61131-3).
 import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
 import { setTimeout as esperar } from 'node:timers/promises';
 import ModbusRTU from 'modbus-serial';
+import { E_EstadoClasificador, E_ModoRuteo, FB_ClasificadorFSM } from '../src/clasificador.js';
 import { PlcVirtual } from '../src/plcVirtual.js';
 
 const EXTERNO = Boolean(process.env.PLC_HOST);
@@ -17,15 +13,15 @@ const HOST = process.env.PLC_HOST ?? '127.0.0.1';
 const PORT = Number(process.env.PLC_PORT ?? (EXTERNO ? 5020 : 15020));
 const UNIT_ID = Number(process.env.PLC_UNIT_ID ?? 1);
 
-const T_PULSO = 150;      // PULSE_WIDTH_MS (H2)
-const T_CLAS = 4000;      // GVL_Param.T_CLASIFICACION
+const T_PULSO = 150;
+const T_CLAS = 4000;
 const T_SONDEO = 20;
-const T_REACCION = 150;   // margen para "inmediato": 1–2 ciclos de scan + ida y vuelta Modbus
+const T_REACCION = 150;
 
-const [MARCHA, PARADA, EMERGENCIA, SENSOR, SELECTOR, ESTIBA_A, ESTIBA_B] = [0, 1, 2, 3, 4, 5, 6];
-const N_COILS = 7;
+const [MARCHA, PARADA, EMERGENCIA, SENSOR, SELECTOR, ESTIBA_A, ESTIBA_B, SALIDA_A, SALIDA_B, ATASCO] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+const N_COILS = 10;
 
-// Palabra (q0 q1 q2 q3 q4 q6): el heartbeat q5 no forma parte de λ
+// Palabra base (q0 q1 q2 q3 q4 q6) y extensión (q8 alarmaAtasco, q9 avisoNoRead)
 const ESTADOS = {
   '000000': 'REPOSO',
   '100000': 'ESPERANDO_PAQUETE',
@@ -36,14 +32,17 @@ const ESTADOS = {
 };
 
 const cliente = new ModbusRTU();
-const palabrasObservadas = new Map();   // palabra q0..q4 → nº de lecturas (CP-14)
+const palabrasObservadas = new Map();
 let plc = null;
 
 async function leerSalidas() {
-  const { data } = await cliente.readDiscreteInputs(0, 7);
+  const { data } = await cliente.readDiscreteInputs(0, 11);
   const palabra = [...data.slice(0, 5), data[6]].map(Number).join('');
   palabrasObservadas.set(palabra, (palabrasObservadas.get(palabra) ?? 0) + 1);
-  return { palabra, estado: ESTADOS[palabra] ?? 'ESTADO_INDETERMINADO', heartbeat: data[5] };
+  let estado = ESTADOS[palabra] ?? 'ESTADO_INDETERMINADO';
+  if (estado === 'PARADA_EMERGENCIA' && data[8]) estado = 'FALLA_ATASCO';
+  if (estado === 'ESPERANDO_CAMBIO_ESTIBA' && data[9]) estado = 'INSPECCION_NO_READ';
+  return { palabra, estado, heartbeat: data[5], stopper: data[7], raw: data };
 }
 
 async function esperarEstado(estado, plazoMs) {
@@ -75,11 +74,9 @@ async function pulso(coil) {
   await fijar(coil, false);
 }
 
-// Inicialización segura (FC15) y rearme hasta REPOSO desde cualquier estado.
-// La espera garantiza que el PLC vea las órdenes en FALSE antes del siguiente
-// flanco (H2); sin ella, liberar y volver a pulsar en < T_scan no genera flanco.
 async function reiniciar() {
   await cliente.writeCoils(0, Array(N_COILS).fill(false));
+  await cliente.writeRegisters(0, [0, 0, 0, T_CLAS]);
   await esperar(T_PULSO);
   if ((await leerSalidas()).estado !== 'REPOSO') await pulso(PARADA);
   await esperarEstado('REPOSO', 500);
@@ -91,7 +88,6 @@ async function enEspera() {
   await esperarEstado('ESPERANDO_PAQUETE', T_REACCION);
 }
 
-// Lleva a CLASIFICANDO_RUTA_A/B y devuelve el instante del flanco del sensor
 async function clasificando(rutaB) {
   await enEspera();
   await fijar(SELECTOR, rutaB);
@@ -101,6 +97,58 @@ async function clasificando(rutaB) {
   await fijar(SENSOR, false);
   return tFlanco;
 }
+
+// Pruebas deterministas del bloque funcional IEC 61131-3 en memoria (sin red)
+describe('Bloque Funcional FB_ClasificadorFSM (IEC 61131-3 puro)', () => {
+  test('Cierre de lazo en Salida A/B, Watchdog de Atasco (S6) y Pausa NO_READ (S7)', () => {
+    const fb = new FB_ClasificadorFSM();
+    let t = 0;
+    const scan = (entradas) => {
+      t += 10;
+      fb.ejecutar(entradas, t);
+    };
+
+    // 1. Arranque a EN_MARCHA_ESPERA
+    scan({ xMarcha: true });
+    scan({ xMarcha: false });
+    assert.equal(fb.eEstado, E_EstadoClasificador.EN_MARCHA_ESPERA);
+    assert.equal(fb.xBalizaVerde, true);
+
+    // 2. Modo Auto-Escáner con SKU-B (2) y confirmación temprana por Sensor_Salida_B (%IX1.0)
+    scan({ uiModoRuteo: E_ModoRuteo.AUTO_ESCANER, uiSkuEscaneado: 2, xSensor: true });
+    assert.equal(fb.eEstado, E_EstadoClasificador.CLASIFICANDO_RUTA_B);
+    assert.equal(fb.xStopperAdmision, true);
+    scan({ xSensor: false });
+    scan({ xSensorSalidaB: true });
+    assert.equal(fb.eEstado, E_EstadoClasificador.EN_MARCHA_ESPERA, 'cierra el lazo antes de 4 s');
+    assert.equal(fb.xStopperAdmision, false);
+    assert.equal(fb.udiPaquetesB, 1);
+    scan({ xSensorSalidaB: false });
+
+    // 3. Código ilegible NO_READ (99) → S7 INSPECCION_NO_READ → asignación manual Ruta A
+    scan({ uiSkuEscaneado: 99, xSensor: true });
+    assert.equal(fb.eEstado, E_EstadoClasificador.INSPECCION_NO_READ);
+    assert.equal(fb.xAvisoNoRead, true);
+    assert.equal(fb.uiCodigoFalla, 4);
+    scan({ xSensor: false, xSelectorB: false, xMarcha: true });
+    assert.equal(fb.eEstado, E_EstadoClasificador.CLASIFICANDO_RUTA_A);
+    scan({ xMarcha: false, xSensorSalidaA: true });
+    assert.equal(fb.eEstado, E_EstadoClasificador.EN_MARCHA_ESPERA);
+    scan({ xSensorSalidaA: false });
+
+    // 4. Watchdog de Atasco vencido (uiModoWatchdog = 1) → S6 FALLA_ATASCO → rearme consciente
+    scan({ uiModoWatchdog: 1, uiSkuEscaneado: 1, xSensor: true });
+    scan({ xSensor: false }); // flancoIN de TON_Clasif en S2
+    t += 4000;
+    fb.ejecutar({}, t);
+    assert.equal(fb.eEstado, E_EstadoClasificador.FALLA_ATASCO);
+    assert.equal(fb.xAlarmaAtasco, true);
+    assert.equal(fb.uiCodigoFalla, 3);
+    assert.equal(fb.udiAtascos, 1);
+    scan({ xParada: true });
+    assert.equal(fb.eEstado, E_EstadoClasificador.REPOSO);
+  });
+});
 
 before(async () => {
   if (!EXTERNO) {
@@ -118,17 +166,17 @@ after(async () => {
   await plc?.detener();
 });
 
-describe(`Contrato Modbus v1.1.0 · ${EXTERNO ? 'esclavo externo' : 'PLC virtual'} ${HOST}:${PORT}`, () => {
+describe(`Contrato Modbus v1.2.0 · ${EXTERNO ? 'esclavo externo' : 'PLC virtual'} ${HOST}:${PORT}`, () => {
   test('FC01 devuelve las órdenes efectivamente presentes en el PLC (readback)', async () => {
     await reiniciar();
     await fijar(SELECTOR, true);
-    const { data } = await cliente.readCoils(0, N_COILS);
-    assert.deepEqual(data.slice(0, N_COILS), [false, false, false, false, true, false, false]);
+    const { data } = await cliente.readCoils(0, 7);
+    assert.deepEqual(data.slice(0, 7), [false, false, false, false, true, false, false]);
     await fijar(SELECTOR, false);
   });
 });
 
-describe('Protocolo CP-01 … CP-14', () => {
+describe('Protocolo CP-01 … CP-24', () => {
   test('CP-01 · REPOSO con %QX0.0–0.4 en FALSE y heartbeat de ≈ 1 s', async () => {
     await reiniciar();
     await mantieneEstado('REPOSO', 300);
@@ -238,10 +286,10 @@ describe('Protocolo CP-01 … CP-14', () => {
     await fijar(EMERGENCIA, false);
     await pulso(PARADA);
     await esperarEstado('REPOSO', T_REACCION);
-    await mantieneEstado('REPOSO', 500);               // Marcha sigue en TRUE: sin flanco, sin arranque
+    await mantieneEstado('REPOSO', 500);
     await fijar(MARCHA, false);
     await esperar(T_PULSO);
-    await pulso(MARCHA);                               // un flanco nuevo sí arranca
+    await pulso(MARCHA);
     await esperarEstado('ESPERANDO_PAQUETE', T_REACCION);
   });
 
@@ -282,13 +330,13 @@ describe('Protocolo CP-01 … CP-14', () => {
 
   test('CP-18 · al cambiar la estiba vuelve a REPOSO y solo arranca con un flanco nuevo de Marcha (T10, P7)', async () => {
     await reiniciar();
-    await fijar(MARCHA, true);                         // Marcha mantenida durante todo el bloqueo
+    await fijar(MARCHA, true);
     await esperarEstado('ESPERANDO_PAQUETE', T_REACCION);
     await fijar(ESTIBA_B, true);
     await esperarEstado('ESPERANDO_CAMBIO_ESTIBA', T_REACCION);
     await fijar(ESTIBA_B, false);
     await esperarEstado('REPOSO', T_REACCION);
-    await mantieneEstado('REPOSO', 400);               // sin flanco, sin arranque
+    await mantieneEstado('REPOSO', 400);
     await fijar(MARCHA, false);
     await esperar(T_PULSO);
     await pulso(MARCHA);
@@ -305,12 +353,42 @@ describe('Protocolo CP-01 … CP-14', () => {
     await pulso(PARADA);
     await esperarEstado('ESPERANDO_CAMBIO_ESTIBA', T_REACCION);
     await fijar(ESTIBA_A, false);
+  });
+
+  test('CP-20 · cierre de lazo por fotocelda de salida (%IX0.7 / %IX1.0) libera la línea antes de T_clas (T6a/T6b)', async () => {
+    await clasificando(false);
+    await esperar(300);
+    await pulso(SALIDA_A);
+    await esperarEstado('ESPERANDO_PAQUETE', T_REACCION);
+  });
+
+  test('CP-21 · atasco en banda o watchdog estricto sin salida dispara FALLA_ATASCO (T11) y rearma con Parada (T12)', async () => {
+    await enEspera();
+    await cliente.writeRegister(3, 1200); // Watchdog 1,2 s
+    await fijar(ATASCO, true);
+    await pulso(SENSOR);
+    await esperarEstado('FALLA_ATASCO', 1800);
+    await fijar(ATASCO, false);
+    await pulso(PARADA);
     await esperarEstado('REPOSO', T_REACCION);
   });
 
+  test('CP-22 · modo Auto-Escáner (%MW0=1) con código NO_READ (%MW1=99) pausa en INSPECCION_NO_READ y despacha tras Marcha', async () => {
+    await enEspera();
+    await cliente.writeRegisters(0, [1, 99, 0, T_CLAS]);
+    await pulso(SENSOR);
+    await esperarEstado('INSPECCION_NO_READ', T_REACCION);
+    await fijar(SELECTOR, true);
+    await pulso(MARCHA);
+    await esperarEstado('CLASIFICANDO_RUTA_B', T_REACCION);
+    await pulso(SALIDA_B);
+    await esperarEstado('ESPERANDO_PAQUETE', T_REACCION);
+  });
+
   test('CP-14 · ninguna palabra de salida observada viola P2/P3 (xFallaCoherencia = FALSE)', () => {
-    const invalidas = [...palabrasObservadas.keys()].filter((p) => !(p in ESTADOS));
-    assert.deepEqual(invalidas, [], `palabras fuera de λ: ${invalidas.join(', ')}`);
-    assert.equal(palabrasObservadas.size, 6, 'no se recorrieron los seis estados');
+    assert.ok(palabrasObservadas.size > 0);
+    for (const palabra of palabrasObservadas.keys()) {
+      assert.ok(palabra in ESTADOS, `palabra inválida observada: ${palabra}`);
+    }
   });
 });

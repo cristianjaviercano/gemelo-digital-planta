@@ -1,5 +1,5 @@
 // Puente Modbus TCP → WebSocket (capa C2, docs/01 §2). Une las piezas, vigila
-// el heartbeat del PLC y publica el estado. No contiene lógica de control.
+// el heartbeat del PLC y publica el estado de las 4 tablas Modbus.
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 import pino from 'pino';
@@ -28,16 +28,14 @@ export async function iniciarPuente(config, log) {
     }
   };
 
-  // Vigilancia del heartbeat: la conexión TCP abierta no garantiza que el PLC
-  // esté ejecutando. Si %QX0.5 no cambia en T_stale, el PLC se considera caído.
   let heartbeatPrevio = null;
   let ultimoCambio = 0;
   let heartbeatVivo = true;
 
-  modbus.on('conectado', ({ inicializacion }) => {
+  modbus.on('conectado', ({ inicializacion, holdingRegisters }) => {
     heartbeatPrevio = null;
     ultimoCambio = performance.now();
-    logModbus.info({ inicializacion }, 'conectado al PLC; inicialización segura aplicada (FC15)');
+    logModbus.info({ inicializacion, holdingRegisters }, 'conectado al PLC; inicialización segura aplicada (FC15/FC16)');
   });
   modbus.on('desconectado', ({ motivo }) => {
     logModbus.warn({ motivo }, 'conexión con el PLC perdida');
@@ -46,7 +44,7 @@ export async function iniciarPuente(config, log) {
   modbus.on('reintento', ({ intento, esperaMs, motivo }) => {
     logModbus.info({ intento, esperaMs, motivo }, 'reintento de conexión programado');
   });
-  modbus.on('lectura', ({ coils, discreteInputs }) => {
+  modbus.on('lectura', ({ coils, discreteInputs, holdingRegisters, inputRegisters }) => {
     const ahora = performance.now();
     if (discreteInputs[5] !== heartbeatPrevio) {
       heartbeatPrevio = discreteInputs[5];
@@ -58,11 +56,9 @@ export async function iniciarPuente(config, log) {
       else logModbus.warn({ congeladoMs: Math.round(ahora - ultimoCambio) }, 'heartbeat congelado: el PLC no está ejecutando');
       heartbeatVivo = vivo;
     }
-    publicar(construirEstado({ plcVivo: vivo, coils, discreteInputs }));
+    publicar(construirEstado({ plcVivo: vivo, coils, discreteInputs, holdingRegisters, inputRegisters }));
   });
 
-  // Sin conexión no hay ciclos de lectura: se sigue publicando el estado
-  // degradado cada T_p para que la HMI sepa que el middleware está vivo
   const tickSinConexion = setInterval(() => {
     if (!modbus.conectado) publicar(construirEstado({ plcVivo: false }));
   }, config.pollIntervalMs);
@@ -74,9 +70,10 @@ export async function iniciarPuente(config, log) {
       responder(crearAck(validacion.target, false, validacion.error));
       return;
     }
-    const { target, coil, accion, valor } = validacion.comando;
+    const { tipo, target, coil, register, accion, valor } = validacion.comando;
     try {
-      if (accion === 'pulse') await modbus.pulso(coil);
+      if (tipo === 'register') await modbus.escribirRegistro(register, valor);
+      else if (accion === 'pulse') await modbus.pulso(coil);
       else await modbus.escribirCoil(coil, valor);
       logWs.info({ cliente, target, accion, valor }, 'comando aplicado');
       responder(crearAck(target, true));
@@ -105,7 +102,6 @@ export async function iniciarPuente(config, log) {
   };
 }
 
-// Ejecución directa (npm start / npm run dev); al importarse desde las pruebas no arranca
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   cargarEntorno();
   let config;
@@ -125,7 +121,7 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   }
   for (const senal of ['SIGINT', 'SIGTERM']) {
     process.once(senal, async () => {
-      setTimeout(() => process.exit(0), 2000).unref();   // salida garantizada aunque algo no cierre
+      setTimeout(() => process.exit(0), 2000).unref();
       await puente.detener();
       log.info('puente detenido');
       process.exit(0);

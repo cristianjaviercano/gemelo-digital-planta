@@ -1,8 +1,12 @@
 // Pruebas del modelo cinemático: geometría frente a T_clas, movimiento según
-// las salidas del PLC, sensor por AABB, decisión de ruta y separación entre paquetes.
+// las salidas del PLC, sensor por AABB, fotoceldas de salida, stopper indexador,
+// escáner óptico SKU, atascos inducidos y estibas de salida.
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { ESTIBAS, GEOMETRIA, ModeloPlanta, S_DECISION, S_SENSOR, posicionEnEstiba, tiempoDespeje } from '../src/core/plantModel.js';
+import {
+  ESTIBAS, GEOMETRIA, ModeloPlanta, S_DECISION, S_SENSOR, S_STOPPER,
+  TIPOS_PAQUETE, posicionEnEstiba, tiempoDespeje,
+} from '../src/core/plantModel.js';
 
 const DT = 1 / 60;
 const APAGADAS = { cintaEntrada: false, desviadorActivo: false, cintaSalidaA: false, cintaSalidaB: false, balizaAlarma: false };
@@ -10,18 +14,19 @@ const ESPERANDO = { ...APAGADAS, cintaEntrada: true };
 const RUTA_A = { ...ESPERANDO, cintaSalidaA: true };
 const RUTA_B = { ...ESPERANDO, desviadorActivo: true, cintaSalidaB: true };
 
-// Simula `segundos` con salidas fijas; devuelve los eventos acumulados
-function simular(modelo, segundos, salidas, { paleta = 0, selectorB = false } = {}) {
-  const eventos = { sensor: [], despachados: [], depositados: [], estibas: [], retiradas: [] };
+function simular(modelo, segundos, salidas, { paleta = 0, selectorB = false, contextoPlc = null } = {}) {
+  const eventos = { sensor: [], sensoresSalidaA: [], sensoresSalidaB: [], escaneos: [], despachados: [], depositados: [], estibas: [], retiradas: [] };
   for (let t = 0; t < segundos; t += DT) {
-    const e = modelo.paso(DT, salidas, paleta, selectorB);
+    const e = modelo.paso(DT, salidas, paleta, selectorB, contextoPlc);
     if (e.sensor !== undefined) eventos.sensor.push(e.sensor);
+    if (e.sensoresSalida?.A !== undefined) eventos.sensoresSalidaA.push(e.sensoresSalida.A);
+    if (e.sensoresSalida?.B !== undefined) eventos.sensoresSalidaB.push(e.sensoresSalida.B);
+    if (e.escaneo) eventos.escaneos.push(e.escaneo);
     for (const clave of ['despachados', 'depositados', 'estibas', 'retiradas']) eventos[clave].push(...e[clave]);
   }
   return eventos;
 }
 
-// Un paquete completo por la ruta indicada, con su salida energizada desde el inicio
 function clasificarUno(modelo, rama) {
   modelo.generarPaquete();
   return simular(modelo, 8.5, rama === 'B' ? RUTA_B : RUTA_A, { paleta: rama === 'B' ? 1 : 0, selectorB: rama === 'B' });
@@ -29,7 +34,7 @@ function clasificarUno(modelo, rama) {
 
 describe('Geometría de la Fase 4 frente al PLC', () => {
   test('cada paquete despeja la planta antes de T_clas, con margen para la latencia', () => {
-    const MARGEN_LATENCIA = 0.1;   // s: T_scan + T_p + transporte (docs/01 §6.1)
+    const MARGEN_LATENCIA = 0.1;
     for (const rama of ['A', 'B']) {
       const t = tiempoDespeje(rama);
       assert.ok(t + MARGEN_LATENCIA <= GEOMETRIA.tClasificacion,
@@ -91,7 +96,6 @@ describe('Modelo cinemático', () => {
     const primero = modelo.generarPaquete();
     simular(modelo, 1, ESPERANDO);
     const segundo = modelo.generarPaquete();
-    // Solo la entrada en marcha: el primero queda parado al pasar a la salida A (apagada)
     simular(modelo, 8, ESPERANDO);
     assert.ok(primero.s > S_DECISION, 'el primero cruzó la bifurcación');
     const hueco = primero.s - segundo.s;
@@ -102,6 +106,51 @@ describe('Modelo cinemático', () => {
     const modelo = new ModeloPlanta();
     assert.ok(modelo.generarPaquete());
     assert.equal(modelo.generarPaquete(), null);
+  });
+});
+
+describe('Instrumentación OT avanzada (v1.2.0): Fotoceldas de salida, Stopper, Escáner y Atascos', () => {
+  test('las fotoceldas de salida A (%IX0.7) y B (%IX1.0) emiten flanco ascendente y descendente antes del despacho', () => {
+    const modelo = new ModeloPlanta();
+    modelo.generarPaquete({ sku: 2 });
+    const ev = simular(modelo, 8, RUTA_B, { paleta: 1, selectorB: true });
+    assert.deepEqual(ev.sensoresSalidaB, [true, false]);
+    assert.deepEqual(ev.sensoresSalidaA, []);
+    assert.equal(ev.escaneos.length, 1);
+    assert.equal(ev.escaneos[0].sku, 2);
+  });
+
+  test('el tope indexador (%QX0.7 frenoAdmision) retiene la cola en S_STOPPER sin frenar al paquete que ya cruzó', () => {
+    const modelo = new ModeloPlanta();
+    const p1 = modelo.generarPaquete({ sku: 1 });
+    simular(modelo, 1.2, ESPERANDO);
+    const p2 = modelo.generarPaquete({ sku: 2 });
+    // Avanzar hasta que p1 cruce S_STOPPER y el sensor de entrada
+    const hastaSensor = (S_SENSOR - p1.s + 0.05) / GEOMETRIA.vCinta;
+    simular(modelo, hastaSensor, ESPERANDO);
+    assert.ok(p1.s > S_STOPPER, 'p1 ya superó el stopper');
+
+    // Al activar frenoAdmision durante CLASIFICANDO_RUTA_A, p1 se despacha y p2 espera en S_STOPPER
+    const ev = simular(modelo, 4.5, { ...RUTA_A, frenoAdmision: true });
+    assert.equal(ev.despachados.length, 1);
+    assert.equal(ev.despachados[0].id, p1.id);
+    assert.ok(Math.abs(p2.s - S_STOPPER) < 1e-3, `p2 retenido en S_STOPPER (${p2.s.toFixed(3)} ≈ ${S_STOPPER.toFixed(3)})`);
+    assert.equal(modelo.enColaEntrada, 1);
+  });
+
+  test('al inyectar un atasco físico en banda, el paquete se traba antes del sensor de salida', () => {
+    const modelo = new ModeloPlanta();
+    modelo.generarPaquete({ sku: 1 });
+    modelo.fijarAtasco(true);
+    const ev = simular(modelo, 8, RUTA_A);
+    assert.equal(ev.despachados.length, 0, 'el paquete atascado no llega a despacharse');
+    assert.equal(ev.sensoresSalidaA.length, 0, 'tampoco activa la fotocelda de salida A');
+    assert.equal(modelo.paquetes[0].atascado, true);
+
+    // Al despejar el atasco, continúa y se despacha
+    modelo.fijarAtasco(false);
+    const evDespues = simular(modelo, 4, RUTA_A);
+    assert.equal(evDespues.despachados.length, 1);
   });
 });
 
@@ -147,7 +196,6 @@ describe('Estibas de salida (Fase 5)', () => {
   });
 
   test('en el cambio, ninguna estiba atraviesa la otra', () => {
-    // Planta de la estiba como polígono (x, z) y prueba de solape por ejes separadores
     const esquinas = (centro, { direccion, normal }) => [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(([a, b]) => centro.clone()
       .addScaledVector(direccion, (a * GEOMETRIA.estiba.largo) / 2).addScaledVector(normal, (b * GEOMETRIA.estiba.ancho) / 2));
     const separadas = (p, q) => [ESTIBAS.A, ESTIBAS.B].flatMap((e) => [e.direccion, e.normal]).some((eje) => {
@@ -181,10 +229,46 @@ describe('Estibas de salida (Fase 5)', () => {
 
   test('la capacidad nueva se aplica ya a una estiba vacía y a la siguiente si la actual tiene carga', () => {
     const modelo = new ModeloPlanta();
+    assert.equal(modelo.estibas.A.capacidad, 64, 'por defecto 4 niveles completos (64 cajas)');
     assert.equal(modelo.fijarCapacidad(5), 5);
     assert.equal(modelo.estibas.A.capacidad, 5);
     clasificarUno(modelo, 'A');
-    modelo.fijarCapacidad(99);
-    assert.deepEqual([modelo.estibas.A.capacidad, modelo.capacidadSiguiente], [5, 48]);
+    modelo.fijarCapacidad(999);
+    assert.deepEqual([modelo.estibas.A.capacidad, modelo.capacidadSiguiente], [5, 96]);
+  });
+
+  test('la estiba apila 4 niveles completos (64 cajas = 4 × 16) antes de llenarse y solicitar cambio', () => {
+    const modelo = new ModeloPlanta();
+    assert.equal(modelo.estibas.A.capacidad, 64);
+    for (let nivel = 1; nivel <= 3; nivel++) {
+      assert.equal(modelo.apilarNivelEstiba('A'), 16);
+      assert.equal(modelo.estibas.A.paquetes.length, nivel * 16);
+      assert.equal(modelo.estibas.A.estado, 'disponible');
+    }
+    // Al completar el 4.º nivel (64 cajas), la estiba pasa a 'llena' y la 4.ª capa queda a 3*alto por encima de la 1.ª
+    assert.equal(modelo.apilarNivelEstiba('A'), 16);
+    assert.equal(modelo.estibas.A.paquetes.length, 64);
+    assert.equal(modelo.estibas.A.estado, 'llena');
+    const cotaNivel1 = modelo.estibas.A.paquetes[0].posicion.y;
+    const cotaNivel4 = modelo.estibas.A.paquetes[48].posicion.y;
+    assert.ok(Math.abs(cotaNivel4 - cotaNivel1 - 3 * GEOMETRIA.paquete.alto) < 1e-9);
+  });
+
+  test('el catálogo multiformato cambia la ruta SKU según el criterio de sorting (Prioridad vs Peso) y acumula kg', () => {
+    const modelo = new ModeloPlanta();
+    // En criterio 'prioridad' (por defecto): Frágil (6 kg) -> Estiba A (SKU 1); Estándar (11.5 kg) -> Estiba B (SKU 2)
+    const pFragil = modelo.generarPaquete({ tipo: 'fragil' });
+    assert.equal(pFragil.sku, 1);
+    assert.equal(pFragil.pesoKg, 6.0);
+
+    // Al cambiar a 'peso' con umbral 5 kg (< 5 kg -> A, >= 5 kg -> B): Frágil (6 kg) pasa a SKU 2 (Estiba B)
+    modelo.fijarCriterioSorting('peso', 5);
+    assert.equal(modelo.skuDePaquete(pFragil), 2);
+
+    const ev = simular(modelo, 8, RUTA_B, { paleta: 1, selectorB: true });
+    assert.equal(ev.escaneos[0].sku, 2);
+    assert.equal(ev.escaneos[0].pesoKg, 6.0);
+    assert.equal(modelo.contadores.pesoDespachadoKg.B, 6.0);
+    assert.equal(modelo.contadores.porTipo.fragil, 1);
   });
 });

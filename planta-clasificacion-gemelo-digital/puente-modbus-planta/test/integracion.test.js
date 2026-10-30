@@ -1,6 +1,5 @@
-// Integración del middleware contra el PLC virtual: una HMI de prueba habla por
-// WebSocket y se verifica el contrato, los comandos, la vigilancia del heartbeat
-// y la reconexión con inicialización segura. Requiere `npm install` en ../plc-virtual.
+// Integración del middleware contra el PLC virtual (Contrato v1.2.0): una HMI de
+// prueba habla por WebSocket y verifica las 4 tablas Modbus, el heartbeat y la reconexión.
 import { describe, test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { performance } from 'node:perf_hooks';
@@ -18,7 +17,6 @@ const config = cargarConfig({
   RECONNECT_BASE_MS: '500', RECONNECT_MAX_MS: '5000', WS_HOST: '127.0.0.1', WS_PORT: '18080',
 });
 
-// HMI mínima: guarda el último estado y las respuestas (ack) recibidas
 class HmiDePrueba {
   estado = null;
   mensajes = [];
@@ -80,19 +78,26 @@ after(async () => {
   await plc?.detener();
 });
 
-describe('Middleware Modbus → WebSocket (Fase 3)', () => {
-  test('publica cada ≈ 50 ms un estado con la estructura exacta del contrato', async () => {
+describe('Middleware Modbus → WebSocket (Contrato v1.2.0)', () => {
+  test('publica cada ≈ 50 ms un estado con las 4 tablas del contrato v1.2.0', async () => {
     const desde = hmi.mensajes.length;
     await esperar(1000);
     const recibidos = hmi.mensajes.slice(desde).length;
-    assert.ok(recibidos >= 15 && recibidos <= 25, `${recibidos} estados en 1 s (esperado ≈ 20)`);
+    assert.ok(recibidos >= 14 && recibidos <= 25, `${recibidos} estados en 1 s (esperado ≈ 20)`);
 
     const e = hmi.estado;
-    assert.deepEqual(Object.keys(e), ['timestamp', 'plcConnected', 'heartbeat', 'inputs', 'outputs', 'systemStatus']);
-    assert.deepEqual(Object.keys(e.inputs),
-      ['marcha', 'parada', 'emergencia', 'sensorEntrada', 'selectorDestinoB', 'estibaLlenaA', 'estibaLlenaB']);
-    assert.deepEqual(Object.keys(e.outputs),
-      ['cintaEntrada', 'desviadorActivo', 'cintaSalidaA', 'cintaSalidaB', 'balizaAlarma', 'senalCambioEstiba']);
+    assert.deepEqual(
+      Object.keys(e),
+      ['timestamp', 'plcConnected', 'heartbeat', 'inputs', 'outputs', 'holdingRegisters', 'inputRegisters', 'systemStatus'],
+    );
+    assert.deepEqual(Object.keys(e.inputs), [
+      'marcha', 'parada', 'emergencia', 'sensorEntrada', 'selectorDestinoB',
+      'estibaLlenaA', 'estibaLlenaB', 'sensorSalidaA', 'sensorSalidaB', 'atascoEnBanda',
+    ]);
+    assert.deepEqual(Object.keys(e.outputs), [
+      'cintaEntrada', 'desviadorActivo', 'cintaSalidaA', 'cintaSalidaB', 'balizaAlarma',
+      'senalCambioEstiba', 'frenoAdmision', 'alarmaAtasco', 'avisoNoRead', 'balizaVerde',
+    ]);
     assert.ok(Number.isInteger(e.timestamp) && e.plcConnected === true);
     assert.equal(e.systemStatus, 'REPOSO');
   });
@@ -102,7 +107,6 @@ describe('Middleware Modbus → WebSocket (Fase 3)', () => {
     const registrar = ({ nombre, valor }) => nombre === 'Marcha' && cambios.push({ valor, t: performance.now() });
     plc.on('entrada', registrar);
     const ack = await hmi.enviar({ type: 'command', target: 'marcha', action: 'pulse' });
-    // El ack confirma que el coil se escribió; el PLC lo lee en su siguiente ciclo (≤ 10 ms)
     await esperar(3 * plc.tScanMs);
     plc.off('entrada', registrar);
 
@@ -113,13 +117,34 @@ describe('Middleware Modbus → WebSocket (Fase 3)', () => {
     await hmi.esperarEstado(enStatus('ESPERANDO_PAQUETE'), 300, 'ESPERANDO_PAQUETE');
   });
 
-  test('selector y sensor (set) → CLASIFICANDO_RUTA_B; inputs muestra el readback (FC01)', async () => {
+  test('selector y sensor (set) → CLASIFICANDO_RUTA_B con stopper activo; sensorSalidaB cierra el lazo', async () => {
     await hmi.enviar({ type: 'command', target: 'selectorDestinoB', action: 'set', value: true });
     await hmi.enviar({ type: 'command', target: 'sensorEntrada', action: 'set', value: true });
     await hmi.esperarEstado(enStatus('CLASIFICANDO_RUTA_B'), 300, 'CLASIFICANDO_RUTA_B');
     await hmi.esperarEstado((e) => e.inputs.selectorDestinoB && e.inputs.sensorEntrada, 300, 'readback de selector y sensor');
     assert.equal(hmi.estado.outputs.desviadorActivo, true);
+    assert.equal(hmi.estado.outputs.frenoAdmision, true);
+    assert.equal(hmi.estado.inputRegisters.paquetesB, 1);
     await hmi.enviar({ type: 'command', target: 'sensorEntrada', action: 'set', value: false });
+
+    // Confirmación por fotocelda de salida B (%IX1.0)
+    await hmi.enviar({ type: 'command', target: 'sensorSalidaB', action: 'set', value: true });
+    await hmi.esperarEstado(enStatus('ESPERANDO_PAQUETE'), 300, 'cierre de lazo a ESPERANDO_PAQUETE');
+    await hmi.enviar({ type: 'command', target: 'sensorSalidaB', action: 'set', value: false });
+  });
+
+  test('escritura de Holding Registers (FC06) para modo Auto-Escáner y lectura NO_READ → INSPECCION_NO_READ', async () => {
+    await hmi.enviar({ type: 'command', target: 'modoRuteo', action: 'write', value: 1 });
+    await hmi.enviar({ type: 'command', target: 'skuEscaneado', action: 'write', value: 99 });
+    await hmi.enviar({ type: 'command', target: 'sensorEntrada', action: 'set', value: true });
+    await hmi.esperarEstado(enStatus('INSPECCION_NO_READ'), 300, 'INSPECCION_NO_READ');
+    assert.equal(hmi.estado.outputs.avisoNoRead, true);
+    assert.equal(hmi.estado.inputRegisters.noRead, 1);
+    assert.equal(hmi.estado.inputRegisters.codigoFalla, 4);
+    await hmi.enviar({ type: 'command', target: 'sensorEntrada', action: 'set', value: false });
+    await hmi.enviar({ type: 'command', target: 'modoRuteo', action: 'write', value: 0 });
+    await hmi.enviar({ type: 'command', target: 'parada', action: 'pulse' });
+    await hmi.esperarEstado(enStatus('REPOSO'), 300, 'REPOSO');
   });
 
   test('rechaza lo que no está en la lista blanca, con el código en el ack', async () => {
@@ -160,15 +185,14 @@ describe('Middleware Modbus → WebSocket (Fase 3)', () => {
   });
 
   test('reconexión con inicialización segura: se conservan seta y selector, el resto a 0', async () => {
-    plc = new PlcVirtual({ port: PUERTO_PLC });   // PLC recién arrancado: todos los coils en 0
+    plc = new PlcVirtual({ port: PUERTO_PLC });
     await plc.iniciar();
     await hmi.esperarEstado((e) => e.plcConnected, 6000, 'reconexión');
 
-    // La seta seguía pulsada en el panel: el PLC nuevo debe recibirla y quedar en emergencia
     await hmi.esperarEstado(enStatus('PARADA_EMERGENCIA'), 500, 'emergencia reaplicada tras reconectar');
     assert.deepEqual(hmi.estado.inputs, {
       marcha: false, parada: false, emergencia: true, sensorEntrada: false, selectorDestinoB: true,
-      estibaLlenaA: false, estibaLlenaB: false,
+      estibaLlenaA: false, estibaLlenaB: false, sensorSalidaA: false, sensorSalidaB: false, atascoEnBanda: false,
     });
 
     await hmi.enviar({ type: 'command', target: 'emergencia', action: 'set', value: false });

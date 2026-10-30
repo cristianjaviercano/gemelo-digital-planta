@@ -17,9 +17,9 @@ El sistema desacopla por completo la **lógica de decisión (OT)** de la **físi
 |---|---|---|
 | **Velocidad nominal ($v_c$)** | 0.6 m/s (36 m/min) | Velocidad estándar para paquetería de comercio electrónico y centros de distribución. |
 | **Altura de transporte ($h$)** | 0.80 m sobre cota cero | Altura ergonómica normalizada según directiva de maquinaria UNE-EN ISO 14738. |
-| **Tiempo de clasificación ($T_{clas}$)** | 4.0 s | Temporizador $T_{clas} \geq \frac{L_d + L_s}{v_c} + \varepsilon$ que garantiza despeje total antes del próximo paquete. |
-| **Estándar de programación PLC** | IEC 61131-3 (ST - Texto Estructurado) | Lenguaje determinista con autómata FSM de Moore, evaluado en tareas periódicas cíclicas. |
-| **Protocolo de campo industrial** | Modbus TCP (Puerto 502 / 15020) | Funciones de estándar abierto FC01 (Read Coils), FC02 (Discrete Inputs), FC05/FC15 (Write). |
+| **Tiempo de clasificación / Watchdog ($T_{clas}$)** | 4.0 s (configurable 1–15 s en `%MW3`) | Temporizador Watchdog $T_{clas} \geq \frac{L_d + L_s}{v_c} + \varepsilon$; cierre de lazo temprano con `%IX0.7`/`%IX1.0` o disparo de `FALLA_ATASCO (S6)`. |
+| **Estándar de programación PLC** | IEC 61131-3 (ST - Texto Estructurado) | Lenguaje determinista con autómata FSM de Moore (`S0..S7`), ruteo multimodo (`%MW0`) e indexador de cola (`%QX0.7`). |
+| **Protocolo de campo industrial** | Modbus TCP (Contrato v1.2.0 · 4 Tablas) | `FC01/05/15` (Coils `%IX0.0..1.1`), `FC02` (Discrete Inputs `%QX0.0..1.2`), `FC03/06` (Holding Registers `%MW0..3`), `FC04` (Input Registers `%IW0..7`). |
 | **Motor de Renderizado 3D** | Three.js (WebGL / WebGPU PBR) | Pipeline con cálculo de sombras PCF, microtexturas de listones antideslizantes y componentes mecánicos paramétricos. |
 
 ---
